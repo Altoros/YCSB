@@ -1,4 +1,4 @@
-import hosts
+import hosts, workloads
 
 databases = {
 
@@ -91,15 +91,13 @@ sleep 3; \
 
     'mongodb' : {
         'name': 'mongodb',
-        'home': '/root/ycsb',        
-        #'home': '/run/shm',
+        'home': workloads.root,
         'command': 'mongodb',
         'properties': {
-            'mongodb.url': 'mongodb://localhost:27018',
+            'mongodb.url': 'mongodb://10.0.2.23:27017',
             'mongodb.database': 'ycsb',
-            'mongodb.writeConcern': 'normal',
-            #'mongodb.writeConcern': 'replicas_safe',
-            'mongodb.readPreference': 'primaryPreferred',
+            'mongodb.writeConcern': 'journaled',
+            'mongodb.readPreference': 'primary_preferred',
         },
         'configdb': 'r5.citrusleaf.local',
         'failover': {
