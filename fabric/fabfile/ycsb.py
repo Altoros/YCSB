@@ -231,17 +231,17 @@ def clean_logs(force=False, db=None):
 
 @runs_once
 def _build_and_upload():
-    local('mvn clean package')
-    put('distribution/target/ycsb-0.1.4.tar.gz', '~/ycsb.tar.gz')
+    with lcd(".."):
+        local('mvn clean package')
 
 @roles('all_client')
 def deploy():
     """Builds and deploys YCSB to the clients"""
     _build_and_upload()
-    client1 = env.roledefs['client'][0]
-    run('scp %s:ycsb.tar.gz .' % client1)
-    with cd('/opt'):
-        run('ln -sf ycsb-0.1.4 ycsb')
-        run('rm -rf ycsb-0.1.4')
-        run('tar xzvf ~/ycsb.tar.gz')
+    with lcd('..'):
+        put('distribution/target/ycsb-0.1.4.tar.gz', '~/ycsb.tar.gz')
+    with cd(workloads.root):
+        sudo('ln -sf ycsb-0.1.4 ycsb')
+        sudo('rm -rf ycsb-0.1.4')
+        sudo('tar xzvf ~/ycsb.tar.gz')
         
