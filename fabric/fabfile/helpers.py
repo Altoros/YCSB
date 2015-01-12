@@ -6,8 +6,6 @@ from fabric.context_managers import settings, hide
 from fabric.operations import run
 from conf import hosts, databases, workloads
 
-basetime = None
-
 
 def base_time(time=None, round_sec=120, tz = hosts.timezone):
     """
@@ -17,9 +15,11 @@ def base_time(time=None, round_sec=120, tz = hosts.timezone):
     Examples: 2:22:29 -> 2:23:00
               2:22:31 -> 2:24:00
     """
-    global basetime
-    if basetime is None: basetime = datetime.now(tz)
-    if time is None: time = basetime
+    basetime = datetime.now(tz)
+    if time is None:
+        time = basetime
+    else:
+        time = datetime.strptime(time,'%Y-%m-%d %H:%M:%S').replace(tzinfo=tz)
     begin = time.min.replace(tzinfo=tz) # long time ago
     seconds = (time - begin).seconds
     rounding = (seconds + round_sec * 1.5) // round_sec * round_sec
@@ -68,7 +68,7 @@ def _sh_quote(argument):
         )
 
 def _at(cmd, time=base_time()):
-    return 'echo %s | at %s today' % (_sh_quote(cmd), time.strftime('%H:%M'))
+    return 'echo %s | at %s' % (_sh_quote(cmd), time.strftime('%H:%M'))
 
 
 def determine_file(regex):
