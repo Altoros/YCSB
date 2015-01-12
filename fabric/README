@@ -42,7 +42,7 @@ Getting Started
 
    <dbname> is aerospike, couchbase, couchbase2, cassandra, 
    mongodb or any other you configured
-   Edit conf/workloads.py to confiture workloads root directory
+   Edit conf/workloads.py to configure workloads root directory
 
 7. Run YCSB workload
 
