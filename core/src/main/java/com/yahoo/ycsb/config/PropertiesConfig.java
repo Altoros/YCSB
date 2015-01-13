@@ -69,4 +69,17 @@ public class PropertiesConfig {
             return getDefaultValue(key);
         }
     }
+
+    protected <T> T getProperty(String key) {
+        return (T) properties.get(key);
+    }
+
+    public String getString(String key) {
+        String property = properties.getProperty(key);
+        if (property != null) {
+            return property;
+        } else {
+            return getDefaultValue(key);
+        }
+    }
 }

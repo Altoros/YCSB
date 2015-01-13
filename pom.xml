@@ -68,6 +68,7 @@
     <module>memcached</module>
     <module>mongodb</module>
     <module>distribution</module>
+    <module>couchbase-3.0</module>
   </modules>
 
   <build>
