@@ -61,7 +61,7 @@ Getting Started
 
 10. Aggregate the YCSB results
 
-    ./bin/merge.py
+    ./reports/merge.py
     
    This script gets the most important parameters from YCSB .out files,
    such as throughput and latency, aggregates the results from multiple clients
