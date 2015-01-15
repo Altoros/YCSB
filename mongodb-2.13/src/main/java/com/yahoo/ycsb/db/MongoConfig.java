@@ -45,6 +45,19 @@ public class MongoConfig extends PropertiesConfig implements MemcachedCompatible
     public static final String READ_PREFERENCE = "mongodb.readPreference";
     public static final ReadPreference READ_PREFERENCE_DEFAULT = ReadPreference.primary();
 
+    public static final String W_PARAMETER = "mongodb.w";
+    public static final int W_PARAMETER_DEFAULT  = 1;
+
+    public static final String WTIMEOUT_PARAMETER = "mongodb.wtimeout";
+    public static final int WTIMEOUT_PARAMETER_DEFAULT  = 0;
+
+    public static final String FSYNC_PARAMETER = "mongodb.fsync";
+    public static final boolean FSYNC_PARAMETER_DEFAULT  = false;
+
+    public static final String J_PARAMETER = "mongodb.j";
+    public static final boolean J_PARAMETER_DEFAULT  = true;
+
+
     public MongoConfig(Properties properties) {
         super(properties);
         declareProperty(URL, DEFAULT_URL, true);
@@ -55,9 +68,13 @@ public class MongoConfig extends PropertiesConfig implements MemcachedCompatible
         declareProperty(FAILURE_MODE_PROPERTY, FAILURE_MODE_PROPERTY_DEFAULT);
         declareProperty(SHUTDOWN_TIMEOUT_MILLIS_PROPERTY, DEFAULT_SHUTDOWN_TIMEOUT_MILLIS);
         declareProperty(OBJECT_EXPIRATION_TIME_PROPERTY, DEFAULT_OBJECT_EXPIRATION_TIME);
-        declareProperty(WRITE_CONCERN, WRITE_CONCERN_DEFAULT);
+        declareProperty(WRITE_CONCERN, false);
         declareProperty(THREAD_COUNT, THREAD_COUNT_DEFAULT);
         declareProperty(READ_PREFERENCE, READ_PREFERENCE_DEFAULT);
+        declareProperty(W_PARAMETER, W_PARAMETER_DEFAULT);
+        declareProperty(WTIMEOUT_PARAMETER, WTIMEOUT_PARAMETER_DEFAULT);
+        declareProperty(FSYNC_PARAMETER, FSYNC_PARAMETER_DEFAULT, false);
+        declareProperty(J_PARAMETER, J_PARAMETER_DEFAULT, false);
     }
 
     @Override
@@ -102,13 +119,15 @@ public class MongoConfig extends PropertiesConfig implements MemcachedCompatible
         return getInteger(OBJECT_EXPIRATION_TIME_PROPERTY);
     }
 
-    public WriteConcern getWriteConcern(){
+    public WriteConcern getWriteConcern() {
         String writeConcernValue = getProperty(WRITE_CONCERN);
-        WriteConcern result = null;
+        WriteConcern writeConcern = null;
         try {
-            result = writeConcernValue  != null ?
-                    WriteConcern.valueOf(writeConcernValue) :
-                    this.<WriteConcern>getDefaultValue(WRITE_CONCERN);
+            if (writeConcernValue != null) {
+                writeConcern = WriteConcern.valueOf(writeConcernValue);
+            } else {
+                writeConcern = new WriteConcern(getWParameter(), getWtimeoutParameter(), getFsyncParameter(), getJParameter());
+            }
         } catch (Exception ex) {
             System.err.println("ERROR: Invalid writeConcern: '"
                     + getString(WRITE_CONCERN)
@@ -116,7 +135,7 @@ public class MongoConfig extends PropertiesConfig implements MemcachedCompatible
                     + "Must be [ errors_ignored | unacknowledged | acknowledged | journaled | replica_acknowledged ]");
             System.exit(1);
         }
-        return result;
+        return writeConcern;
     }
 
     public Integer getThreadCount(){
@@ -137,6 +156,22 @@ public class MongoConfig extends PropertiesConfig implements MemcachedCompatible
             System.exit(1);
         }
         return result;
+    }
+
+    public Integer getWParameter () {
+         return getInteger(W_PARAMETER);
+    }
+
+    public Integer getWtimeoutParameter () {
+        return getInteger(WTIMEOUT_PARAMETER);
+    }
+
+    public Boolean getFsyncParameter () {
+        return getBoolean(FSYNC_PARAMETER);
+    }
+
+    public Boolean getJParameter () {
+        return getBoolean(J_PARAMETER);
     }
 
 }
