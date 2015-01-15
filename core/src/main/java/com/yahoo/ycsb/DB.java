@@ -177,22 +177,4 @@ public abstract class DB
 	 * @return Zero on success, a non-zero error code on error.  See this class's description for a discussion of error codes.
 	 */
 	public abstract int delete(String table, String key);
-
-    /**
-     * Query on secondary indices
-     *
-     * @param table The name of the table
-     * @return Zero on success, a non-zero error code on error.
-     */
-    public abstract int query(String table, String key, int limit);
-
-    public int deleteAll(String table, Set<String> keys) {
-        int code = OK;
-        for (String key : keys) {
-            if (delete(table, key) == ERROR) {
-                code = ERROR;
-            }
-        }
-        return code;
-    }
 }
