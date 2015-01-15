@@ -319,4 +319,14 @@ public class DBWrapper extends DB {
         _measurements.reportReturnCode("DELETE", res);
         return res;
     }
+
+    public int query(String table, String key, int limit) {
+        long st = System.nanoTime();
+        int res = _db.query(table, key, limit);
+        long en = System.nanoTime();
+        _measurements.measure("QUERY", (int) ((en - st) / 1000));
+        _measurements.reportReturnCode("QUERY", res);
+        return res;
+    }
+
 }
