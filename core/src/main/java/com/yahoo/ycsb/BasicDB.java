@@ -298,16 +298,6 @@ public class BasicDB extends DB
 		return 0;
 	}
 
-    public int query(String table, String key, int limit) {
-        delay();
-
-        if (verbose) {
-            System.out.println("QUERY " + table);
-        }
-
-        return 0;
-    };
-
 	/**
 	 * Short test of BasicDB
 	 */

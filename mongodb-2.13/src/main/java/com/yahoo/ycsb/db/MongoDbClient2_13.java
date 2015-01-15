@@ -326,46 +326,6 @@ public class MongoDbClient2_13 extends DB {
 
     }
 
-    @Override
-    @SuppressWarnings("unchecked")
-    /**
-     * Perform a range scan for a set of records in the database. Each field/value pair from the result will be stored in a HashMap.
-     *
-     * @param table The name of the table
-     * @param key The record key of the first record to read.
-     * @param limit The number of records to read
-     * @return Zero on success, a non-zero error code on error. See this class's description for a discussion of error codes.
-     */
-    public int query(String table, String key, int limit) {
-        int startIndex = random.nextInt(9);
-        String field = "field" + startIndex;
-
-        try {
-            key = field + key.substring(4 + startIndex, 12 + startIndex);
-        } catch (StringIndexOutOfBoundsException e) {
-            key = field;
-        }
-
-        com.mongodb.DB db = null;
-        DBCursor cursor = null;
-        try {
-            db = mongoClient.getDB(database);
-            DBCollection collection = db.getCollection(table);
-            DBObject query = QueryBuilder.start(field).greaterThanEquals(key).get();
-            cursor = collection.find(query, null).limit(limit);
-            while(cursor.hasNext()) {
-                cursor.next().toMap();
-            }
-            return OK;
-        } catch (Exception e) {
-            return ERROR;
-        } finally {
-            if (cursor != null) {
-                cursor.close();
-            }
-        }
-    }
-
     /**
      * Turn everything in the object into a ByteIterator
      */
