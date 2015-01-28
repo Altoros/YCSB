@@ -9,11 +9,11 @@ data = {    #global YSCB properties
     'fieldcount': 10,
     'fieldlength': 10,
     'fieldnameprefix': 'f',
-    #'operationcount': 10000000,
+    'operationcount': 10000000,
     #'operationcount': 200000000,    #>10min for Aerospike and Couchbase
     #'operationcount': 50000000,    #>10min for Cassandra and MongoDB
     
-    'operationcount': 1000000*TIME_DURATION, # 40min at 1000k
+    #'operationcount': 1000000*TIME_DURATION, # 40min at 1000k
     'maxexecutiontime': TIME_DURATION,      # 40min
     #'maxexecutiontime': 600,      # 10min
 

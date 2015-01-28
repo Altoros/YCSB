@@ -18,7 +18,6 @@ import com.yahoo.ycsb.DBException;
 import java.io.UnsupportedEncodingException;
 import java.net.UnknownHostException;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * MongoDB client for YCSB framework.
@@ -44,9 +43,7 @@ public class MongoDbClient2_13 extends DB {
     private static ReadPreference readPreference;
 
     /** The database to access. */
-    private static String database;
-
-    private static Random random = new Random();
+    private static com.mongodb.DB db;
 
     /**
      * Initialize any state for this DB.
@@ -55,7 +52,6 @@ public class MongoDbClient2_13 extends DB {
     @Override
     public void init() throws DBException {
         String urlParam = mongoConfig.getHosts();
-        database = mongoConfig.getDatabase();
 
         try {
             String[] clients = urlParam.split(",");
@@ -65,7 +61,7 @@ public class MongoDbClient2_13 extends DB {
                 if (url.startsWith("mongodb://")) {
                     url = url.substring(10);
                 }
-                url += "/" + database;
+                url += "/" + mongoConfig.getDatabase();
                 try {
                     seeds.add(new DBAddress(url));
                 } catch (UnknownHostException e) {
@@ -81,8 +77,11 @@ public class MongoDbClient2_13 extends DB {
                     .connectionsPerHost(mongoConfig.getThreadCount())
                     .cursorFinalizerEnabled(false).build();
             mongoClient = new MongoClient(seeds, options);
+
+            db = mongoClient.getDB(mongoConfig.getDatabase());
+
         } catch (Exception e1) {
-            System.err.println("Could not initialize MongoDB connection pool for Loader: " + e1.toString());
+            System.err.println("Could not initialize Mongo Client: " + e1.toString());
             e1.printStackTrace();
             return;
         }
@@ -106,9 +105,7 @@ public class MongoDbClient2_13 extends DB {
      */
     @Override
     public int delete(String table, String key) {
-        com.mongodb.DB db = null;
         try {
-            db = mongoClient.getDB(database);
             DBCollection collection = db.getCollection(table);
             DBObject q = new BasicDBObject().append("_id", key);
             WriteResult res = collection.remove(q, writeConcern);
@@ -117,8 +114,6 @@ public class MongoDbClient2_13 extends DB {
         catch (Exception e) {
             System.err.println(e.toString());
             return ERROR;
-        }
-        finally {
         }
     }
 
@@ -133,22 +128,19 @@ public class MongoDbClient2_13 extends DB {
      * @return Zero on success, a non-zero error code on error. See this class's description for a discussion of error codes.
      */
     public int insert(String table, String key, Map<String, ByteIterator> values) {
-        com.mongodb.DB db;
         try {
-            db = mongoClient.getDB(database);
             DBCollection collection = db.getCollection(table);
-            DBObject r = new BasicDBObject().append("_id", key);
+
+            BasicDBObject doc = new BasicDBObject("_id", key);
             for (String k : values.keySet()) {
-                r.put(k, values.get(k).toArray());
+                doc.append(k, values.get(k).toArray());
             }
-            WriteResult res = collection.insert(r, writeConcern);
+            WriteResult res = collection.insert(doc, writeConcern);
             return OK;
         }
         catch (Exception e) {
             e.printStackTrace();
             return ERROR;
-        }
-        finally {
         }
     }
 
@@ -164,10 +156,7 @@ public class MongoDbClient2_13 extends DB {
      * @return Zero on success, a non-zero error code on error or "not found".
      */
     public int readOne(String table, String key, String field, Map<String,ByteIterator> result) {
-
-        DBObject fieldsToReturn = new BasicDBObject();
-        fieldsToReturn.put(field, 1);
-
+        BasicDBObject fieldsToReturn = new BasicDBObject(field, 1);
         return read(table, key, result, fieldsToReturn);
     }
 
@@ -186,16 +175,11 @@ public class MongoDbClient2_13 extends DB {
     }
 
 
-    public int read(String table, String key, Map<String, ByteIterator> result,
-            DBObject fieldsToReturn) {
-        com.mongodb.DB db;
+    public int read(String table, String key, Map<String, ByteIterator> result, DBObject fieldsToReturn) {
         try {
-            db = mongoClient.getDB(database);
-
             DBCollection collection = db.getCollection(table);
-            DBObject q = new BasicDBObject().append("_id", key);
+            BasicDBObject q = new BasicDBObject("_id", key);
             DBObject queryResult = collection.findOne(q, fieldsToReturn, readPreference);
-
             if (queryResult != null) {
                 result.putAll(resultify(queryResult));
             }
@@ -203,7 +187,6 @@ public class MongoDbClient2_13 extends DB {
         } catch (Exception e) {
             System.err.println(e.toString());
             return ERROR;
-        } finally {
         }
     }
 
@@ -218,10 +201,7 @@ public class MongoDbClient2_13 extends DB {
      * @return Zero on success, a non-zero error code on error.  See this class's description for a discussion of error codes.
      */
     public int updateOne(String table, String key, String field, ByteIterator value) {
-
-        DBObject fieldsToSet = new BasicDBObject();
-        fieldsToSet.put(key, value.toArray());
-
+        BasicDBObject fieldsToSet = new BasicDBObject(key, value.toArray());
         return update(table, key, fieldsToSet);
     }
 
@@ -236,33 +216,29 @@ public class MongoDbClient2_13 extends DB {
      */
     public int updateAll(String table, String key, Map<String,ByteIterator> values) {
 
-        DBObject fieldsToSet = new BasicDBObject();
+        BasicDBObject fieldsToSet = new BasicDBObject();
         Iterator<String> keys = values.keySet().iterator();
         while (keys.hasNext()) {
             String tmpKey = keys.next();
-            fieldsToSet.put(tmpKey, values.get(tmpKey).toArray());
+            fieldsToSet.append(tmpKey, values.get(tmpKey).toArray());
         }
 
         return update(table, key, fieldsToSet);
     }
 
     public int update(String table, String key, DBObject fieldsToSet) {
-        com.mongodb.DB db = null;
         try {
-            db = mongoClient.getDB(database);
 
             DBCollection collection = db.getCollection(table);
-            DBObject q = new BasicDBObject().append("_id", key);
-            DBObject u = new BasicDBObject();
 
-            u.put("$set", fieldsToSet);
-            WriteResult res = collection.update(q, u, false, false,
-                    writeConcern);
+            DBObject q = new BasicDBObject("_id", key);
+            BasicDBObject u = new BasicDBObject("$set", fieldsToSet);
+
+            WriteResult res = collection.update(q, u, false, false, writeConcern);
             return OK;
         } catch (Exception e) {
             System.err.println(e.toString());
             return ERROR;
-        } finally {
         }
     }
 
@@ -278,7 +254,6 @@ public class MongoDbClient2_13 extends DB {
      * @return Zero on success, a non-zero error code on error.  See this class's description for a discussion of error codes.
      */
     public int scanAll(String table, String startkey, int recordcount, List<Map<String, ByteIterator>> result) {
-
         return scan(table, startkey, recordcount, result);
     }
 
@@ -299,17 +274,14 @@ public class MongoDbClient2_13 extends DB {
         return scan(table, startkey, recordcount, result);
     }
 
-    public int scan(String table, String startkey, int recordcount,
-            List<Map<String, ByteIterator>> result) {
-        com.mongodb.DB db = null;
-        DBCursor cursor = null;
+    public int scan(String table, String startkey, int recordcount, List<Map<String, ByteIterator>> result) {
+        DBCursor cursor;
         try {
-            db = mongoClient.getDB(database);
             DBCollection collection = db.getCollection(table);
-            // { "_id":{"$gte":startKey, "$lte":{"appId":key+"\uFFFF"}} }
-            DBObject scanRange = new BasicDBObject().append("$gte", startkey);
-            DBObject q = new BasicDBObject().append("_id", scanRange);
-            cursor = collection.find(q).limit(recordcount);    //TODO: apply readPreference here
+           /* QueryBuilder queryBuilder = QueryBuilder.start("_id").greaterThan(startkey);*/
+
+            DBObject q = new BasicDBObject("_id",  new BasicDBObject("$gte", startkey));
+            cursor = new DBCursor(collection, q, null, readPreference);
             while (cursor.hasNext()) {
                 result.add(resultify(cursor.next()));
             }
@@ -318,10 +290,6 @@ public class MongoDbClient2_13 extends DB {
         } catch (Exception e) {
             System.err.println(e.toString());
             return ERROR;
-        }
-        finally
-        {
-
         }
 
     }
