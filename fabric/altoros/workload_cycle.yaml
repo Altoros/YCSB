@@ -1,0 +1,21 @@
+env:
+    home_dir: /home/ubuntu/benchmarks
+    workload_logs_dir: logs
+    system_logs_dir: logs
+
+connection:
+    user: ubuntu
+    password: gfR4eda7
+   # key: ~/.ssh/rsa
+
+hosts:
+    #- name: localhost
+    #  ip: 127.0.0.1
+         
+    - name: 752ubuntu_mongodb1
+      ip: 192.168.1.150 
+
+    - name: 752ubuntu_mongodb2
+      ip: 192.168.1.153
+
+
