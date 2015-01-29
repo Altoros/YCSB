@@ -6,7 +6,7 @@ env:
 connection:
     user: ubuntu
     password: gfR4eda7
-   # key: ~/.ssh/rsa
+    #key: ~/.ssh/rsa
 
 hosts:
     #- name: localhost
