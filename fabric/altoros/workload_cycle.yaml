@@ -1,21 +1,20 @@
-env:
+# Common settings for all workloads
+#
+workload:
     home_dir: /home/ubuntu/benchmarks
-    workload_logs_dir: logs
-    system_logs_dir: logs
+    logs_dir: logs
+    bundles: [workload_cycle.yaml, fabfile.py]    
 
 connection:
     user: ubuntu
     password: gfR4eda7
     #key: ~/.ssh/rsa
 
-hosts:
-    #- name: localhost
-    #  ip: 127.0.0.1
-         
-    - name: 752ubuntu_mongodb1
-      ip: 192.168.1.150 
+hosts:       
+    - desc: 752ubuntu_mongodb1
+      addr: 192.168.1.150 
 
-    - name: 752ubuntu_mongodb2
-      ip: 192.168.1.153
+    - desc: 752ubuntu_mongodb2
+      addr: 192.168.1.153
 
 
