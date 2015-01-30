@@ -29,11 +29,6 @@
             <artifactId>core</artifactId>
             <version>${project.version}</version>
         </dependency>
-        <dependency>
-            <groupId>com.yahoo.ycsb</groupId>
-            <artifactId>memcached</artifactId>
-            <version>${project.version}</version>
-        </dependency>
     </dependencies>
 
     <build>

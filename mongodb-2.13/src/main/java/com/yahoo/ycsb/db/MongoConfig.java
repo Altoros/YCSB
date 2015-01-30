@@ -3,12 +3,10 @@ package com.yahoo.ycsb.db;
 import com.mongodb.ReadPreference;
 import com.mongodb.WriteConcern;
 import com.yahoo.ycsb.config.PropertiesConfig;
-import com.yahoo.ycsb.memcached.MemcachedCompatibleConfig;
-import net.spy.memcached.FailureMode;
 
 import java.util.Properties;
 
-public class MongoConfig extends PropertiesConfig implements MemcachedCompatibleConfig {
+public class MongoConfig extends PropertiesConfig {
 
     public static final String URL = "mongodb.url";
     
@@ -32,9 +30,6 @@ public class MongoConfig extends PropertiesConfig implements MemcachedCompatible
 
     public static final String READ_BUFFER_SIZE_PROPERTY = "mongodb.readBufferSize";
     public static final int READ_BUFFER_SIZE_DEFAULT = 16384;
-
-    public static final String FAILURE_MODE_PROPERTY = "mongodb.failureMode";
-    public static final FailureMode FAILURE_MODE_PROPERTY_DEFAULT = FailureMode.Redistribute;
 
     public static final String WRITE_CONCERN= "mongodb.writeConcern";
     public static final WriteConcern WRITE_CONCERN_DEFAULT = WriteConcern.JOURNALED;
@@ -65,7 +60,6 @@ public class MongoConfig extends PropertiesConfig implements MemcachedCompatible
         declareProperty(CHECK_OPERATION_STATUS_PROPERTY, CHECK_OPERATION_STATUS_DEFAULT);
         declareProperty(OP_TIMEOUT_PROPERTY, DEFAULT_OP_TIMEOUT);
         declareProperty(READ_BUFFER_SIZE_PROPERTY, READ_BUFFER_SIZE_DEFAULT);
-        declareProperty(FAILURE_MODE_PROPERTY, FAILURE_MODE_PROPERTY_DEFAULT);
         declareProperty(SHUTDOWN_TIMEOUT_MILLIS_PROPERTY, DEFAULT_SHUTDOWN_TIMEOUT_MILLIS);
         declareProperty(OBJECT_EXPIRATION_TIME_PROPERTY, DEFAULT_OBJECT_EXPIRATION_TIME);
         declareProperty(WRITE_CONCERN, false);
@@ -77,46 +71,12 @@ public class MongoConfig extends PropertiesConfig implements MemcachedCompatible
         declareProperty(J_PARAMETER, J_PARAMETER_DEFAULT, false);
     }
 
-    @Override
     public String getHosts() {
         return getString(URL);
     }
 
     public String getDatabase() {
         return getString(DATABASE);
-    }
-
-    @Override
-    public boolean getCheckOperationStatus() {
-        return getBoolean(CHECK_OPERATION_STATUS_PROPERTY);
-    }
-
-    @Override
-    public long getOpTimeout() {
-        return getLong(OP_TIMEOUT_PROPERTY);
-    }
-
-    @Override
-    public int getReadBufferSize() {
-        return getInteger(READ_BUFFER_SIZE_PROPERTY);
-    }
-
-    @Override
-    public FailureMode getFailureMode() {
-        String failureModeValue = getProperty(FAILURE_MODE_PROPERTY);
-        return failureModeValue != null ?
-                FailureMode.valueOf(failureModeValue) :
-                this.<FailureMode>getDefaultValue(FAILURE_MODE_PROPERTY);
-    }
-
-    @Override
-    public long getShutdownTimeoutMillis() {
-        return getLong(SHUTDOWN_TIMEOUT_MILLIS_PROPERTY);
-    }
-
-    @Override
-    public int getObjectExpirationTime() {
-        return getInteger(OBJECT_EXPIRATION_TIME_PROPERTY);
     }
 
     public WriteConcern getWriteConcern() {
