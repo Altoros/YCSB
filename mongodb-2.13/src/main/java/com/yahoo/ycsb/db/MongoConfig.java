@@ -112,7 +112,7 @@ public class MongoConfig extends PropertiesConfig {
         } catch (Exception e) {
             System.err.println("ERROR: Invalid readPreference: '"
                     + readPreference
-                    + "'. Must be [ primary | primary_preferred | secondary | secondary_preferred | nearest ]");
+                    + "'. Must be [ primary | primaryPreferred | secondary | secondaryPreferred | nearest ]");
             System.exit(1);
         }
         return result;
