@@ -31,7 +31,7 @@ import java.util.*;
  */
 public class MongoDbClient2_13 extends DB {
 
-    protected final MongoConfig mongoConfig = new MongoConfig(getProperties());
+    protected MongoConfig mongoConfig;
 
     /** A singleton Mongo instance. */
     private static MongoClient mongoClient;
@@ -51,6 +51,7 @@ public class MongoDbClient2_13 extends DB {
      */
     @Override
     public void init() throws DBException {
+        mongoConfig = new MongoConfig(getProperties());
         String urlParam = mongoConfig.getHosts();
 
         try {
