@@ -1,0 +1,13 @@
+# workloads settings 
+#
+workloadA:
+    	
+    params:
+	threadcount: 10
+    	recordcount:    69278283
+    	operationcount: 23300000
+    	requestdistribution: uniform
+    	readproportion:   0.0
+    	updateproportion: 0
+    	scanproportion:   1.0
+    	insertproportion: 0
