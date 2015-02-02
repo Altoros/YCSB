@@ -34,16 +34,16 @@ public class MongoDbClient2_13 extends DB {
     protected MongoConfig mongoConfig;
 
     /** A singleton Mongo instance. */
-    private static MongoClient mongoClient;
+    private MongoClient mongoClient;
 
     /** The default write concern for the test. */
-    private static WriteConcern writeConcern;
+    private WriteConcern writeConcern;
 
     /** The default read preference for the test */
-    private static ReadPreference readPreference;
+    private ReadPreference readPreference;
 
     /** The database to access. */
-    private static com.mongodb.DB db;
+    private com.mongodb.DB db;
 
     /**
      * Initialize any state for this DB.
@@ -51,6 +51,9 @@ public class MongoDbClient2_13 extends DB {
      */
     @Override
     public void init() throws DBException {
+        if (mongoClient != null) {
+            return;
+        }
         mongoConfig = new MongoConfig(getProperties());
         String urlParam = mongoConfig.getHosts();
 
@@ -84,9 +87,7 @@ public class MongoDbClient2_13 extends DB {
         } catch (Exception e1) {
             System.err.println("Could not initialize Mongo Client: " + e1.toString());
             e1.printStackTrace();
-            return;
         }
-
     }
     /**
      * Cleanup any state for this DB.
