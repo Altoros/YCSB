@@ -46,10 +46,10 @@ public class MongoDbClient extends DB {
     protected static final Integer INCLUDE = 1;
 
     /** A singleton Mongo instance. */
-    private static Mongo[] mongos;
+    static Mongo[] mongos;
 
     /** The default write concern for the test. */
-    private static WriteConcern writeConcern;
+    static WriteConcern writeConcern;
 
     /** The default read preference for the test */
     private static ReadPreference readPreference;
