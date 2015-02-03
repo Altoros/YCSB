@@ -188,7 +188,7 @@ def get_stats_log_path(conf, host):
             
 def start_system_stats(conf, host):
     log_path = get_stats_log_path(conf, host)
-    cmd = 'sar -o %s 1 15' % log_path
+    cmd = 'sar -o %s 1 %s' % (log_path, 2 * 60 * 60)
     
     return bg_sudo(cmd)
 
@@ -197,7 +197,7 @@ def get_ycsb_options(conf):
     ycsb_opts = conf.workload_options().get('ycsb')
     db_opts   = conf.workload_options().get('db')
     
-    property_to_str = lambda k, v: '%s=%s' % (k, v)
+    property_to_str = lambda k, v: '-p %s=%s' % (k, v)
     dict_to_list  = lambda dic, fn: [fn(k, v) for (k, v) in dic.iteritems()]
 
     options = []
