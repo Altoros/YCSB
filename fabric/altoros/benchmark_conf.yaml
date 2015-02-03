@@ -1,7 +1,9 @@
 # Common settings for all workloads
 #
-home_dir: /home/ubuntu/benchmarks
-logs_dir: logs
+remote_home_dir: /home/ubuntu/benchmarks
+remote_logs_dir: logs
+local_home_dir: 
+local_logs_dir: benchmark_logs
 bundles:  [ycsb.jar]
 
 connection:
@@ -18,12 +20,13 @@ clients:
 
 workloads:
     workloadA:
-        phase: load
-        params:
-            workload: com.yahoo.ycsb.Workload  
-            threadcount: 10
-            recordcount:    69278283
-            operationcount: 23300000
-            requestdistribution: uniform
-            insertproportion: 1.0
+        ycsb:
+            options: [-load, -s] 
+            properties:
+                workload: com.yahoo.ycsb.Workload  
+                threadcount: 10
+                recordcount:    69278283
+                operationcount: 23300000
+                requestdistribution: uniform
+                insertproportion: 1.0
 

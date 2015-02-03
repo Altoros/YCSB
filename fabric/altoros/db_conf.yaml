@@ -1,6 +1,19 @@
-#
+# Database driver specific settings
 #
 mongo:
-    hosts: []
-    db: basic
-                
+    ycsb:
+        db: com.yahoo.ycsb.BasicDB
+
+    specific:
+        seeds: 192.168.38.1,192.168.38.2
+        durable: true 
+
+cassandra:
+    ycsb:
+        db: com.yahoo.ycsb.BasicDB
+  
+    specific:
+        seeds: 192.168.38.1, 192.168.38.2
+        durable: false
+        write_cons_lvl: ONE
+        read_cons_lvl : QUORUM               
