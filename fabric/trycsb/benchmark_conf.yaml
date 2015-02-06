@@ -62,7 +62,7 @@ workloads:
         ycsb:
             options: [-load, -s] 
             properties:
-                workload: com.yahoo.ycsb.Workload  
+                workload: com.yahoo.ycsb.workloads.CoreWorkload
                 threadcount: 10
                 recordcount:    69278283
                 operationcount: 23300000
