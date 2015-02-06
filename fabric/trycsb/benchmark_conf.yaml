@@ -14,14 +14,21 @@ connection:
 
 
 clients:       
-    - desc: n1
-      addr: 10.0.3.11 
+    - desc: n1         # Just description to make it human readable
+      addr: 10.0.3.11  # Host name or IP-address
 
 
-# Database driver specific settings
+# Database driver specific settings 
 #
 db_profiles:
     mongo:
+        # All key-value properties from this section are passed as cli params
+        # for ycsb executable. 
+        # Therefore the result cli params string represented as list of values
+        # of the form '-p key=ycsb[key]' separated by spaces.
+        # If value of the key is list then it will be converted to string with
+        # comma separated entries. 
+        # 
         ycsb:
             db: com.yahoo.ycsb.db.MongoDbClient2_13
             mongodb.url: 'mongodb://10.0.2.23:27017'
@@ -42,6 +49,16 @@ db_profiles:
 #
 workloads:
     workloadA:
+        # All key-value properties from 'properties' section are passed as cli 
+        # params for ycsb executable. 
+        # Therefore the result cli params string represented as list of values
+        # of the form '-p key=ycsb['properties'][key]' separated by spaces.
+        # If value of the key is list then it will be converted to string with
+        # comma separated entries. 
+        #
+        # Parameters from 'options' section are passed to ycsb executable 
+        # directly as they are represented in list entries.
+        # 
         ycsb:
             options: [-load, -s] 
             properties:
