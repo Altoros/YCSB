@@ -1,23 +1,45 @@
-# Common settings for all workloads
+# Benchmark settings
 #
 remote_home_dir: /home/ubuntu/benchmarks
 remote_logs_dir: logs
 local_home_dir: 
 local_logs_dir: benchmark_logs
-bundles:  [ycsb.jar]
+bundles: [ycsb.jar]
+ycsbexe: ycsb.jar
 
 connection:
     user:     ubuntu
-    password: gfR4eda7
+    password: ubuntu
     #key:     ~/.ssh/rsa
 
+
 clients:       
-    - desc: 752ubuntu_mongodb1
-      addr: 192.168.1.150 
+    - desc: n1
+      addr: 10.0.3.11 
 
-    - desc: 752ubuntu_mongodb2
-      addr: 192.168.1.153
 
+# Database driver specific settings
+#
+db_profiles:
+    mongo:
+        ycsb:
+            db: com.yahoo.ycsb.db.MongoDbClient2_13
+            mongodb.url: 'mongodb://10.0.2.23:27017'
+            mongodb.database: ycsb
+            mongodb.writeConcern: journaled
+            mongodb.readPreference: primaryPreferred
+
+    cassandra:
+        ycsb:
+            db: com.yahoo.ycsb.BasicDB
+            seeds: [192.168.38.1, 192.168.38.2]
+            durable: false
+            write_cons_lvl: ONE
+            read_cons_lvl : QUORUM               
+
+
+# Workload specific settings
+#
 workloads:
     workloadA:
         ycsb:
@@ -27,6 +49,7 @@ workloads:
                 threadcount: 10
                 recordcount:    69278283
                 operationcount: 23300000
+                insertproportion: 1.0               
                 requestdistribution: uniform
-                insertproportion: 1.0
+  
 

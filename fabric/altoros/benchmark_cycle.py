@@ -16,6 +16,7 @@ from fabric.api import sudo
 from fabric.api import settings
 from fabric.api import task
 
+import copy
 import errno
 import os
 import sys
@@ -24,7 +25,6 @@ import yaml
 
 
 BENCHMARK_CONF_PATH = 'benchmark_conf.yaml' 
-WORKLOAD_DB_CONF_PATH = 'db_conf.yaml'
 START_TIME  = time.strftime('%d-%b-%Y_%H-%M-%S')
 
 
@@ -73,8 +73,9 @@ def bg_sudo(src_cmd, out='/dev/null'):
 
 
 def sudo_kill_11(*pids):
-    for pid in pids: 
-        sudo('kill -11 %s' % pid)
+    for pid in pids:
+        if pid: 
+            sudo('kill -11 %s' % pid)
 
     
 def cmd_conj(*commands):
@@ -87,22 +88,21 @@ def replace_in_sys_file(target_file, pattern, result):
 
 
 class BenchmarkConfig():
-    def __init__(self, config_path, workload_name, workload_db_conf_path=None,
-                 db_profile=None):
+    CURRENT_DIR = '.'
+
+    def __init__(self, config_path, workload_name, db_profile=None):
         self._workload_name = workload_name
         self._db_profile = db_profile
         
         self._conf = self._init_benchmark_settings(config_path)       
-
-        if db_profile:
-            self._init_db_settings(workload_db_conf_path)
-            
+    
     def _init_benchmark_settings(self, config_path):
         conf = self._parse_config(config_path)
 
         self._validate_benchmark_settings(conf)
         self._init_connection_settings(conf)
-        
+        self._init_db_settings(conf)
+                    
         return conf
         
     def _validate_benchmark_settings(self, conf):
@@ -120,18 +120,12 @@ class BenchmarkConfig():
         env.password = conn.get('password')
         env.key_filename = conn.get('key')
 
-    def _init_db_settings(self, config_path):
-        db_conf = self._parse_config(config_path)
-
+    def _init_db_settings(self, conf):
+        db_conf = conf.get('db_profiles')
         self._validate_db_settings(db_conf)
-
-        workload_conf = self._conf['workloads'][self._workload_name]
-        workload_conf['db'] = db_conf.get(self._db_profile)
-        
-        return config_path
-
+    
     def _validate_db_settings(self, db_conf):            
-        if not db_conf.get(self._db_profile):
+        if self._db_profile and not db_conf.get(self._db_profile):
             fault("No options for db profile '%s'" % self._db_profile)
 
     def _parse_config(self, src):
@@ -151,36 +145,52 @@ class BenchmarkConfig():
         return map(lambda h: h['addr'], self._conf.get('clients'))
 
     def benchmark_home_dir(self):
-        return self._not_empty( self._conf['remote_home_dir'], '.' )
+        return self._not_empty( self._conf['remote_home_dir'], self.CURRENT_DIR )
 
     def benchmark_local_home_dir(self):
-        return self._not_empty( self._conf['local_home_dir'], '.' )
-    
-    def workload_name(self):
-        return self._workload_name
-    
+        return self._not_empty( self._conf['local_home_dir'], self.CURRENT_DIR )
+
+    def ycsb_executable_name(self):
+        return self._conf['ycsbexe']
+            
     def db_profile(self):
         return self._db_profile
 
+    def db_profile_parameters(self):
+        return self._conf['db_profiles'][self._db_profile]
+
+    def workload_name(self):
+        return self._workload_name
+        
     def workload_local_logs_dir(self):
-        local_logs_dir = self._not_empty( self._conf['local_logs_dir'], '.' )
+        local_logs_dir = self._not_empty( self._conf['local_logs_dir'],
+                                          self.CURRENT_DIR )
 
         return path( self.benchmark_local_home_dir(), local_logs_dir,
                      self.db_profile() )
 
-    def workload_options(self):
+    def workload_parameters(self):
         return self._conf['workloads'][self._workload_name]
 
     def workload_logs_dir(self):
-        remote_logs_dir = self._not_empty( self._conf['remote_logs_dir'], '.' )
+        remote_logs_dir = self._not_empty( self._conf['remote_logs_dir'],
+                                           self.CURRENT_DIR )
 
         return path( self.benchmark_home_dir(), remote_logs_dir,
                      self.workload_name() )
 
     def options(self):
-        return self._conf
+        return copy.deepcopy(self._conf)
 
 
+def setup_fabric(conf):
+    conn = conf.options().get('connection', {})
+
+    env.user     = conn.get('user')
+    env.password = conn.get('password')
+    env.key_filename = conn.get('key')
+
+    
 def get_stats_log_path(conf, host):
     log_file = get_log_file_name( '%s-stats' % conf.workload_name(), host )
     return path( conf.workload_logs_dir(), log_file )
@@ -188,23 +198,23 @@ def get_stats_log_path(conf, host):
             
 def start_system_stats(conf, host):
     log_path = get_stats_log_path(conf, host)
-    cmd = 'sar -o %s 1 %s' % (log_path, 2 * 60 * 60)
+    cmd = 'sar -o %s 1 %s' % (log_path, 2*60*60) # monitor stats limit is 2 hours
     
     return bg_sudo(cmd)
 
 
 def get_ycsb_options(conf):
-    ycsb_opts = conf.workload_options().get('ycsb')
-    db_opts   = conf.workload_options().get('db')
-    
-    property_to_str = lambda k, v: '-p %s=%s' % (k, v)
-    dict_to_list  = lambda dic, fn: [fn(k, v) for (k, v) in dic.iteritems()]
+    ycsb_params = conf.workload_parameters().get('ycsb')
+    db_params   = conf.db_profile_parameters().get('ycsb')
+
+    value_to_str    = lambda (v): ','.join(v) if isinstance(v, list) else v  
+    property_to_str = lambda (k, v): '-p %s=%s' % (k, value_to_str(v))
+    dict_to_list    = lambda (dic, fn): [fn(k, v) for (k, v) in dic.iteritems()]
 
     options = []
-    options += ycsb_opts.get('options')
-    options += dict_to_list( ycsb_opts.get('properties'), property_to_str )
-    options += dict_to_list( db_opts.get('ycsb'), property_to_str ) 
-    options += dict_to_list( db_opts.get('specific'), property_to_str ) 
+    options += ycsb_params.get('options')
+    options += dict_to_list( ycsb_params.get('properties'), property_to_str )
+    options += dict_to_list( db_params, property_to_str ) 
 
     return ' '.join(options)
     
@@ -215,10 +225,12 @@ def get_workload_log_path(conf, host):
 
     
 def execute_workload(conf, host):
+    ycsbexe  = conf.ycsb_executable_name()
     options  = get_ycsb_options(conf)
     log_path = get_workload_log_path(conf, host)
-       
-    cmd = 'java -jar ycsb.jar %s >%s 2>&1' % (options, log_path)
+
+    cmd = 'java -jar %s %s >%s 2>&1' % (ycsbexe, options, log_path)
+
     with cd(conf.benchmark_home_dir()):
         run( cmd, warn_only=True )
 
@@ -256,8 +268,7 @@ def setup_java():
     
 def setup_sar():
     install_pckg('sysstat')
-    replace_in_sys_file('/etc/default/sysstat', 'ENABLED="false"',
-                        'ENABLED="true"')
+    replace_in_sys_file('/etc/default/sysstat', 'ENABLED="false"', 'ENABLED="true"')
     restart_daemon('sysstat')
 
 
@@ -282,18 +293,22 @@ def deploy_benchmark_bundle(conf):
     for src in conf.options().get('bundles'): 
         put(src, conf.benchmark_home_dir())
 
-
+    
 @task
 @runs_once
 def setup(benchmark_conf_path=BENCHMARK_CONF_PATH, workload_name=None):
     '''Setups environment for benchmarks and deploys specified
        workload bundle to remote machines.
+       Params:
+           benchmark_conf_path: path to benchmark config if YAML format
+           workload_name      : name of workload to run
     '''
     check_arg_not_blank(workload_name)
     check_arg_not_blank(benchmark_conf_path)
     
     conf  = BenchmarkConfig(benchmark_conf_path, workload_name)    
     hosts = conf.clients_addresses()
+    setup_fabric(conf)
 
     execute( setup_benchmark_environment, conf, hosts=hosts )    
     execute( deploy_benchmark_bundle, conf, hosts=hosts )
@@ -303,29 +318,37 @@ def setup(benchmark_conf_path=BENCHMARK_CONF_PATH, workload_name=None):
 @runs_once
 def deploy(benchmark_conf_path=BENCHMARK_CONF_PATH, workload_name=None):
     '''Deploys benchmark bundle for specified workload.
+       Params:
+           benchmark_conf_path: path to benchmark config if YAML format
+           workload_name      : name of workload to run
     '''
     check_arg_not_blank(workload_name)
     check_arg_not_blank(benchmark_conf_path)
     
-    conf  = BenchmarkConfig(benchmark_conf_path, workload_name)    
-
+    conf = BenchmarkConfig(benchmark_conf_path, workload_name)    
+    setup_fabric(conf)
+ 
     execute( deploy_benchmark_bundle, conf, hosts=conf.clients_addresses() )
 
         
 @task
 @runs_once
 def test(benchmark_conf_path=BENCHMARK_CONF_PATH, workload_name=None,
-         workload_db_conf_path=WORKLOAD_DB_CONF_PATH, db_profile=None):
+         db_profile=None):
     '''Starts the whole cycle for specified benchmark.
+       Params:
+           benchmark_conf_path: path to benchmark config if YAML format
+           workload_name      : name of workload to run
+           db_profile         : name of DB profile to use in workload
     '''
     check_arg_not_blank(benchmark_conf_path)
     check_arg_not_blank(workload_name)
     check_arg_not_blank(db_profile)
 
-    conf  = BenchmarkConfig(benchmark_conf_path, workload_name,
-                            workload_db_conf_path, db_profile)
+    conf  = BenchmarkConfig(benchmark_conf_path, workload_name, db_profile)
     hosts = conf.clients_addresses()
-
+    setup_fabric(conf)
+    
     execute( execute_benchmark, conf, hosts=hosts )
     execute( collect_benchmark_results, conf, hosts=hosts ) 
 
