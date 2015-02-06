@@ -207,9 +207,9 @@ def get_ycsb_options(conf):
     ycsb_params = conf.workload_parameters().get('ycsb')
     db_params   = conf.db_profile_parameters().get('ycsb')
 
-    value_to_str    = lambda (v): ','.join(v) if isinstance(v, list) else v  
-    property_to_str = lambda (k, v): '-p %s=%s' % (k, value_to_str(v))
-    dict_to_list    = lambda (dic, fn): [fn(k, v) for (k, v) in dic.iteritems()]
+    value_to_str    = lambda v: ','.join(v) if isinstance(v, list) else v
+    property_to_str = lambda k, v: '-p %s=%s' % (k, value_to_str(v))
+    dict_to_list    = lambda dic, fn: [fn(k, v) for (k, v) in dic.iteritems()]
 
     options = []
     options += ycsb_params.get('options')
