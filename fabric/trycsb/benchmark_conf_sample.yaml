@@ -1,11 +1,10 @@
-# Benchmark settings
+# Benchmark environment settings
 #
-remote_home_dir: /home/ubuntu/benchmarks
+remote_home_dir: ~/benchmarks
 remote_logs_dir: logs
 local_home_dir: 
 local_logs_dir: benchmark_logs
-bundles: [ycsb.jar]
-ycsbexe: ycsb.jar
+
 
 connection:
     user:     ubuntu
@@ -13,60 +12,74 @@ connection:
     #key:     ~/.ssh/rsa
 
 
-clients:       
-    - desc: n1         # Just description to make it human readable
-      addr: 10.0.3.11  # Host name or IP-address
+clients:
+    hosts:
+        - desc: c1            # Just description to make it human readable
+          addr: 50.97.182.66  # Host name or IP-address
+
+    bundles: [ycsb.jar]    # List of files to load on hosts into $remote_home_dir
+    ycsbexe: ycsb.jar      # YCSB executable file
+
+    # Database driver specific settings
+    #
+    db_profiles:
+        mongo:
+            # All key-value properties from this section are passed as cli params
+            # for ycsb executable.
+            # Therefore the result cli params string represented as list of values
+            # of the form '-p key=ycsb[key]' separated by spaces.
+            # If value of the key is list then it will be converted to string with
+            # comma separated entries.
+            #
+            ycsb:
+                db: com.yahoo.ycsb.db.MongoDbClient2_13
+                mongodb.url: 'mongodb://10.0.2.23:27017'
+                mongodb.database: ycsb
+                mongodb.writeConcern: journaled
+                mongodb.readPreference: primaryPreferred
+
+        cassandra:
+            ycsb:
+                db: com.yahoo.ycsb.BasicDB
+                seeds: [192.168.38.1, 192.168.38.2]
+                durable: false
+                write_cons_lvl: ONE
+                read_cons_lvl : QUORUM
+
+    # Workload specific settings
+    #
+    workloads:
+        workloadA:
+            # All key-value properties from 'properties' section are passed as cli
+            # params for ycsb executable.
+            # Therefore the result cli params string represented as list of values
+            # of the form '-p key=ycsb['properties'][key]' separated by spaces.
+            # If value of the key is list then it will be converted to string with
+            # comma separated entries.
+            #
+            # Parameters from 'options' section are passed to ycsb executable
+            # directly as they are represented in list entries.
+            #
+            ycsb:
+                options: [-load, -s]
+                properties:
+                    workload: com.yahoo.ycsb.workloads.CoreWorkload
+                    threadcount: 10
+                    recordcount:    69278283
+                    operationcount: 23300000
+                    insertproportion: 1.0
+                    requestdistribution: uniform
 
 
-# Database driver specific settings 
-#
-db_profiles:
-    mongo:
-        # All key-value properties from this section are passed as cli params
-        # for ycsb executable. 
-        # Therefore the result cli params string represented as list of values
-        # of the form '-p key=ycsb[key]' separated by spaces.
-        # If value of the key is list then it will be converted to string with
-        # comma separated entries. 
-        # 
-        ycsb:
-            db: com.yahoo.ycsb.db.MongoDbClient2_13
-            mongodb.url: 'mongodb://10.0.2.23:27017'
-            mongodb.database: ycsb
-            mongodb.writeConcern: journaled
-            mongodb.readPreference: primaryPreferred
+servers:
+    bundles: [java.bin]
 
-    cassandra:
-        ycsb:
-            db: com.yahoo.ycsb.BasicDB
-            seeds: [192.168.38.1, 192.168.38.2]
-            durable: false
-            write_cons_lvl: ONE
-            read_cons_lvl : QUORUM               
+    hosts:
+        - desc: s1
+          addr: 50.97.182.67
 
+        - desc: s2
+          addr: 50.97.182.68
 
-# Workload specific settings
-#
-workloads:
-    workloadA:
-        # All key-value properties from 'properties' section are passed as cli 
-        # params for ycsb executable. 
-        # Therefore the result cli params string represented as list of values
-        # of the form '-p key=ycsb['properties'][key]' separated by spaces.
-        # If value of the key is list then it will be converted to string with
-        # comma separated entries. 
-        #
-        # Parameters from 'options' section are passed to ycsb executable 
-        # directly as they are represented in list entries.
-        # 
-        ycsb:
-            options: [-load, -s] 
-            properties:
-                workload: com.yahoo.ycsb.workloads.CoreWorkload
-                threadcount: 10
-                recordcount:    69278283
-                operationcount: 23300000
-                insertproportion: 1.0               
-                requestdistribution: uniform
-  
-
+        - desc: s3
+          addr: 50.97.182.69

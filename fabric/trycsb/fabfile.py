@@ -1,5 +1,9 @@
 # Unite all test cycles in one place
 #
-from benchmark_cycle import test
-from benchmark_cycle import setup
-from benchmark_cycle import deploy
+from lib.setup_cycle import env_setup
+from lib.setup_cycle import db_setup
+
+from lib.benchmark_cycle import deploy_benchmark
+from lib.benchmark_cycle import run_benchmark
+
+import var_tasks
