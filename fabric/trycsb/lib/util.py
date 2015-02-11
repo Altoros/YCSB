@@ -1,6 +1,7 @@
-# Util functions.
-# Serj Sintsov, 2015
-#
+"""Util functions.
+
+   Serj Sintsov, 2015
+"""
 from fabric.api import hide
 from fabric.api import local
 from fabric.api import run

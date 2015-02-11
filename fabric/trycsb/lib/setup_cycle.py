@@ -1,19 +1,19 @@
-# Describes full workload running cycle.
-# Serj Sintsov, 2015
-#
+"""Describes full workload running cycle.
+
+   Serj Sintsov, 2015
+"""
+from fabric.api import cd
 from fabric.api import env
 from fabric.api import execute
 from fabric.api import parallel
+from fabric.api import put
 from fabric.api import roles
 from fabric.api import runs_once
-from fabric.api import sudo
 from fabric.api import task
-from lib.util import make_remote_dirs
+from fabric.api import sudo
 
 from util import check_arg_not_blank
-from util import install_pckg
-from util import replace_in_sys_file
-from util import restart_daemon
+from util import make_remote_dirs
 
 from config import BenchmarkConfig
 
@@ -32,94 +32,71 @@ def setup_fabric_env(conf):
     env.roledefs['servers'] = conf.server_conf.hosts_addresses
 
 
+def execute_shell_scripts(scripts, scripts_names, dest):
+    make_remote_dirs(dest)
+
+    for f in scripts:
+        put(f, dest)
+
+    with cd(dest):
+        for f in scripts_names:
+            sudo('sh %s' % f)
+
+
+@parallel
+@roles('clients')
+def setup_clients(conf):
+    make_remote_dirs(conf.benchmark_home_dir)
+    execute_shell_scripts(conf.client_conf.setup_local_scripts,
+                          conf.client_conf.setup_scripts_names,
+                          conf.client_conf.setup_remote_scripts_dir)
+ 
+
 @parallel
 @roles('servers')
-def setup_cassandra():
-    pass
-
-
-@parallel
-@roles('clients', 'servers')
-def setup_java():
-    install_pckg('software-properties-common')
-    sudo('apt-add-repository -y ppa:webupd8team/java')
-    sudo('apt-get update')
-    install_pckg('oracle-java7-installer')
-    install_pckg('oracle-java7-set-default')
-
-
-@parallel
-@roles('clients', 'servers')
-def setup_sar():
-    install_pckg('sysstat')
-    replace_in_sys_file('/etc/default/sysstat', 'ENABLED="false"', 'ENABLED="true"')
-    restart_daemon('sysstat')
-
-
-@parallel
-@roles('clients', 'servers')
-def create_benchmark_dirs(conf):
+def setup_servers(conf):
     make_remote_dirs(conf.benchmark_home_dir)
+    execute_shell_scripts(conf.server_conf.setup_local_scripts,
+                          conf.server_conf.setup_scripts_names,
+                          conf.server_conf.setup_remote_scripts_dir)
 
 
-def setup_env_cycle(conf):
-    execute(create_benchmark_dirs, conf)
-    execute(setup_sar)
-    execute(setup_java)
+@parallel
+@roles('servers')
+def setup_servers_db(conf):
+    execute_shell_scripts(conf.server_conf.setup_db_local_scripts,
+                          conf.server_conf.setup_db_scripts_names,
+                          conf.server_conf.setup_db_remote_scripts_dir)
 
 
 @task
 @runs_once
-def env_setup(benchmark_conf_path=BENCHMARK_CONF_PATH):
+def setup_db(config_path=BENCHMARK_CONF_PATH, db_profile=None):
+    """Setups database.
+       Params:
+           config_path: path to benchmark config if YAML format
+           db_profile : database profile
+    """
+    check_arg_not_blank(config_path, 'config_path')
+    check_arg_not_blank(db_profile, 'db_profile')
+
+    conf = BenchmarkConfig(config_path=config_path, db_profile=db_profile)
+    setup_fabric_env(conf)
+
+    execute(setup_servers_db, conf)
+
+
+@task
+@runs_once
+def setup_env(config_path=BENCHMARK_CONF_PATH):
     """Setups clients and servers environment (needed packages and setting).
        Params:
-           benchmark_conf_path: path to benchmark config if YAML format
+           config_path: path to benchmark config if YAML format
     """
-    check_arg_not_blank(benchmark_conf_path, 'benchmark_conf_path')
+    check_arg_not_blank(config_path, 'config_path')
     
-    conf = BenchmarkConfig(benchmark_conf_path)
+    conf = BenchmarkConfig(config_path=config_path)
     setup_fabric_env(conf)
 
-    setup_env_cycle(conf)
-
-
-@task
-@runs_once
-def db_setup(benchmark_conf_path=BENCHMARK_CONF_PATH, db_profile=None):
-    """Setups database.
-       Params:
-           benchmark_conf_path: path to benchmark config if YAML format
-           db_profile: database profile
-    """
-    check_arg_not_blank(benchmark_conf_path, 'benchmark_conf_path')
-    check_arg_not_blank(db_profile, 'db_profile')
-
-    conf = BenchmarkConfig(benchmark_conf_path, workload_name=None, db_profile=db_setup)
-    setup_fabric_env(conf)
-
-    db_handler = {
-        'cassandra': setup_cassandra
-    }
-
-    execute(db_handler[db_profile], conf)
-
-
-@task
-@runs_once
-def db_setup(benchmark_conf_path=BENCHMARK_CONF_PATH, db_profile=None):
-    """Setups database.
-       Params:
-           benchmark_conf_path: path to benchmark config if YAML format
-           db_profile: database profile
-    """
-    check_arg_not_blank(benchmark_conf_path, 'benchmark_conf_path')
-    check_arg_not_blank(db_profile, 'db_profile')
-
-    conf = BenchmarkConfig(benchmark_conf_path, workload_name=None, db_profile=db_setup)
-    setup_fabric_env(conf)
-
-    db_handler = {
-        'cassandra': setup_cassandra
-    }
-
-    execute(db_handler[db_profile], conf)
+    execute(setup_clients, conf)
+    execute(setup_servers, conf)

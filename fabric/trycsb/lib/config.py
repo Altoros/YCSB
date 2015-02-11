@@ -1,6 +1,7 @@
-# Benchmark configs decription.
-# Serj Sintsov, 2015
-#
+"""Benchmark configs decription.
+
+   Serj Sintsov, 2015
+"""
 from util import fault
 from util import path
 from util import not_empty
@@ -8,26 +9,40 @@ from util import not_empty
 import yaml
 import copy
 
+from os import listdir
+from os.path import isfile
+
+
+def parse_yaml(src):
+    try:
+        f = open(src, 'r')
+        return yaml.load(f)
+
+    except IOError as e:
+        fault( "can not read hosts file '%s': %s" % (src, e.strerror) )
+
+
+def file_names(src):
+    if not src:
+        return []
+
+    return [f for f in listdir(src) if isfile(path(src, f))]
+
+
+def to_file_paths(prefix_path, file_names):
+    return map(lambda n: path(prefix_path, n), file_names)
+
 
 class BenchmarkConfig():
     _CURRENT_DIR = '.'
 
-    def __init__(self, config_path, workload_name=None, db_profile=None):
+    def __init__(self, config_path=None, workload_name=None, db_profile=None):
         self._workload_name = workload_name
         self._db_profile = db_profile
 
-        self._conf = BenchmarkConfig.parse_config(config_path)
+        self._conf = parse_yaml(config_path)
         self._client_conf = ClientConfig(self, self._conf['clients'])
         self._server_conf = ServerConfig(self, self._conf['servers'])
-
-    @classmethod
-    def parse_config(cls, src):
-        try:
-            f = open(src, 'r')
-            return yaml.load(f)
-
-        except IOError as e:
-            fault( "can not read hosts file '%s': %s" % (src, e.strerror) )
 
     @classmethod
     def hosts_to_addresses(cls, conf):
@@ -82,17 +97,6 @@ class ClientConfig():
         self._base_conf = base_conf
         self._cli_conf  = cli_conf
 
-        self._validate_benchmark_settings()
-        self._validate_db_settings()
-
-    def _validate_benchmark_settings(self):
-        if self._base_conf.workload_name and not self.workload_parameters:
-            fault("No options for workload '%s'" % self._base_conf.workload_name)
-
-    def _validate_db_settings(self):
-        if self._base_conf.db_profile and not self.db_profile_parameters:
-            fault("No options for db profile '%s'" % self._base_conf.db_profile)
-
     @property
     def hosts_addresses(self):
         return map(lambda h: h['addr'], self._cli_conf.get('hosts'))
@@ -113,7 +117,23 @@ class ClientConfig():
     def bundles(self):
         return self._cli_conf.get('bundles')
 
+    @property
+    def setup_local_scripts_dir(self):
+        return self._cli_conf.get('setup_scripts_local_dir')
 
+    @property
+    def setup_remote_scripts_dir(self):
+        return self._cli_conf.get('setup_scripts_remote_dir')
+
+    @property
+    def setup_scripts_names(self):
+        return file_names(self.setup_local_scripts_dir)
+        
+    @property
+    def setup_local_scripts(self):
+        return to_file_paths(self.setup_local_scripts_dir, self.setup_scripts_names)
+
+    
 class ServerConfig():
 
     def __init__(self, base_conf, srv_conf):
@@ -123,3 +143,39 @@ class ServerConfig():
     @property
     def hosts_addresses(self):
         return BenchmarkConfig.hosts_to_addresses(self._srv_conf)
+
+    @property
+    def db_profile_parameters(self):
+        return self._srv_conf.get('db_profiles')[self._base_conf.db_profile]
+
+    @property
+    def setup_local_scripts_dir(self):
+        return self._srv_conf.get('setup_scripts_local_dir')
+
+    @property
+    def setup_remote_scripts_dir(self):
+        return self._srv_conf.get('setup_scripts_remote_dir')
+
+    @property
+    def setup_scripts_names(self):
+        return file_names(self.setup_local_scripts_dir)
+        
+    @property
+    def setup_local_scripts(self):
+        return to_file_paths(self.setup_local_scripts_dir, self.setup_scripts_names)
+
+    @property
+    def setup_db_local_scripts_dir(self):
+        return self._srv_conf['db_profiles'][self._base_conf.db_profile]['setup_scripts_local_dir']
+
+    @property
+    def setup_db_remote_scripts_dir(self):
+        return self._srv_conf['db_profiles'][self._base_conf.db_profile]['setup_scripts_remote_dir']
+
+    @property
+    def setup_db_scripts_names(self):
+        return file_names(self.setup_db_local_scripts_dir)
+
+    @property
+    def setup_db_local_scripts(self):
+        return to_file_paths(self.setup_db_local_scripts_dir, self.setup_db_scripts_names)

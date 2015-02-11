@@ -1,4 +1,5 @@
 """Describes full workload running cycle.
+
    Serj Sintsov, 2015
 """
 from fabric import state
@@ -144,15 +145,15 @@ def deploy_cycle(conf):
 
 @task
 @runs_once
-def deploy_benchmark(benchmark_conf_path=BENCHMARK_CONF_PATH):
+def deploy_benchmark(config_path=BENCHMARK_CONF_PATH):
     """Deploys benchmark bundle for specified workload.
        Params:
-           benchmark_conf_path: path to benchmark config if YAML format
-           workload_name      : name of workload to run
+           config_path  : path to benchmark config if YAML format
+           workload_name: name of workload to run
     """
-    check_arg_not_blank(benchmark_conf_path, 'benchmark_conf_path')
+    check_arg_not_blank(config_path, 'config_path')
 
-    conf = BenchmarkConfig(benchmark_conf_path)
+    conf = BenchmarkConfig(config_path=config_path)
     setup_fabric_env(conf)
 
     deploy_cycle(conf)
@@ -160,19 +161,20 @@ def deploy_benchmark(benchmark_conf_path=BENCHMARK_CONF_PATH):
 
 @task
 @runs_once
-def run_benchmark(benchmark_conf_path=BENCHMARK_CONF_PATH, workload_name=None,
+def run_benchmark(config_path=BENCHMARK_CONF_PATH, workload_name=None,
                   db_profile=None):
     """Starts the whole cycle for specified benchmark.
        Params:
-           benchmark_conf_path: path to benchmark config if YAML format
-           workload_name      : name of workload to run
-           db_profile         : name of DB profile to use in workload
+           config_path  : path to benchmark config if YAML format
+           workload_name: name of workload to run
+           db_profile   : name of DB profile to use in workload
     """
-    check_arg_not_blank(benchmark_conf_path, 'benchmark_conf_path')
+    check_arg_not_blank(config_path, 'config_path')
     check_arg_not_blank(workload_name, 'workload_name')
     check_arg_not_blank(db_profile, 'db_profile')
 
-    conf = BenchmarkConfig(benchmark_conf_path, workload_name, db_profile)
+    conf = BenchmarkConfig(config_path=config_path, workload_name=workload_name,
+                           db_profile=db_profile)
     setup_fabric_env(conf)
     
     test_cycle(conf)

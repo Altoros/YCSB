@@ -44,4 +44,4 @@ def prepare_servers(benchmark_conf_path=BENCHMARK_CONF_PATH):
     conf = BenchmarkConfig(benchmark_conf_path)
     setup_fabric_env(conf)
 
-    execute(kill_application, conf)
+    execute(kill_application)
