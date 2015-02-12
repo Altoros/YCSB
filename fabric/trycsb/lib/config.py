@@ -22,11 +22,13 @@ def parse_yaml(src):
         fault( "can not read hosts file '%s': %s" % (src, e.strerror) )
 
 
-def file_names(src):
-    if not src:
+def script_names(src_dir):
+    if not src_dir:
         return []
 
-    return [f for f in listdir(src) if isfile(path(src, f))]
+    is_script = lambda f: isfile(path(src_dir, f)) and f.endswith('.sh')
+    
+    return [f for f in listdir(src_dir) if is_script(f)]
 
 
 def to_file_paths(prefix_path, file_names):
@@ -118,20 +120,20 @@ class ClientConfig():
         return self._cli_conf.get('bundles')
 
     @property
-    def setup_local_scripts_dir(self):
-        return self._cli_conf.get('setup_scripts_local_dir')
+    def setup_local_dir(self):
+        return self._cli_conf.get('setup_local_dir')
 
     @property
-    def setup_remote_scripts_dir(self):
-        return self._cli_conf.get('setup_scripts_remote_dir')
+    def setup_remote_dir(self):
+        return self._cli_conf.get('setup_remote_dir')
 
     @property
     def setup_scripts_names(self):
-        return file_names(self.setup_local_scripts_dir)
+        return script_names(self.setup_local_dir)
         
     @property
-    def setup_local_scripts(self):
-        return to_file_paths(self.setup_local_scripts_dir, self.setup_scripts_names)
+    def setup_local_files(self):
+        return to_file_paths(self.setup_local_dir, listdir(self.setup_local_dir))
 
     
 class ServerConfig():
@@ -149,33 +151,34 @@ class ServerConfig():
         return self._srv_conf.get('db_profiles')[self._base_conf.db_profile]
 
     @property
-    def setup_local_scripts_dir(self):
-        return self._srv_conf.get('setup_scripts_local_dir')
+    def setup_local_dir(self):
+        return self._srv_conf.get('setup_local_dir')
 
     @property
-    def setup_remote_scripts_dir(self):
-        return self._srv_conf.get('setup_scripts_remote_dir')
+    def setup_remote_dir(self):
+        return self._srv_conf.get('setup_remote_dir')
 
     @property
     def setup_scripts_names(self):
-        return file_names(self.setup_local_scripts_dir)
+        return script_names(self.setup_local_dir)
         
     @property
-    def setup_local_scripts(self):
-        return to_file_paths(self.setup_local_scripts_dir, self.setup_scripts_names)
+    def setup_local_files(self):
+        return to_file_paths(self.setup_local_dir, listdir(self.setup_local_dir))
 
     @property
-    def setup_db_local_scripts_dir(self):
-        return self._srv_conf['db_profiles'][self._base_conf.db_profile]['setup_scripts_local_dir']
+    def setup_db_local_dir(self):
+        return self._srv_conf['db_profiles'][self._base_conf.db_profile]['setup_local_dir']
 
     @property
-    def setup_db_remote_scripts_dir(self):
-        return self._srv_conf['db_profiles'][self._base_conf.db_profile]['setup_scripts_remote_dir']
+    def setup_db_remote_dir(self):
+        return self._srv_conf['db_profiles'][self._base_conf.db_profile]['setup_remote_dir']
 
     @property
     def setup_db_scripts_names(self):
-        return file_names(self.setup_db_local_scripts_dir)
+        return script_names(self.setup_db_local_dir)
 
     @property
-    def setup_db_local_scripts(self):
-        return to_file_paths(self.setup_db_local_scripts_dir, self.setup_db_scripts_names)
+    def setup_db_local_files(self):
+        return to_file_paths(self.setup_db_local_dir, listdir(self.setup_db_local_dir))
+

@@ -3,6 +3,7 @@
 """
 from fabric.api import env
 from fabric.api import execute
+from fabric.api import get
 from fabric.api import parallel
 from fabric.api import roles
 from fabric.api import runs_once
@@ -30,18 +31,32 @@ def setup_fabric_env(conf):
 
 @parallel
 @roles('servers')
-def kill_application():
+def virgin_servers_for_cassandra():
     sudo('service mysql stop')
     sudo('service apache2 stop')
     sudo('service bind9 stop')
 
 
+virgin_servers_handlers = {
+    'cassandra': virgin_servers_for_cassandra
+}
+
+    
 @task
 @runs_once
-def prepare_servers(benchmark_conf_path=BENCHMARK_CONF_PATH):
-    check_arg_not_blank(benchmark_conf_path, 'benchmark_conf_path')
-
+def virgin_servers(config_path=BENCHMARK_CONF_PATH, db_profile=None):
+    check_arg_not_blank(config_path, 'config_path')
+    check_arg_not_blank(db_profile, 'db_profile')
+ 
     conf = BenchmarkConfig(benchmark_conf_path)
     setup_fabric_env(conf)
 
-    execute(kill_application)
+    execute(virgin_servers_handlers[db_profile])
+
+
+@task
+def copy_cassandra_confs():
+    get('/etc/dse/cassandra/cassandra.yaml')
+    get('/etc/dse/cassandra/cassandra-env.sh')
+    get('/etc/dse/cassandra/commitlog_archiving.properties')
+    

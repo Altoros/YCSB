@@ -18,8 +18,8 @@ clients:
     # remote machine into 'setup_scripts_remote_dir' directory.
     # Warning! Scripts executed under root privileges.
     #
-    setup_scripts_local_dir:  setup_scripts/client
-    setup_scripts_remote_dir: setup_scripts/client
+    setup_local_dir:  setup_scripts/client
+    setup_remote_dir: setup_scripts/client
 
     hosts:
         - desc: c1            # Just description to make it human readable
@@ -81,8 +81,8 @@ clients:
 
 servers:
     bundles: []
-    setup_scripts_local_dir:  setup_scripts/client
-    setup_scripts_remote_dir: setup_scripts/server
+    setup_local_dir:  setup_scripts/client
+    setup_remote_dir: setup_scripts/server
 
     hosts:
         - desc: s1
@@ -96,5 +96,5 @@ servers:
 
     db_profiles:
         cassandra:
-            setup_scripts_local_dir: setup_scripts/cassandra
-            setup_scripts_remote_dir: setup_scripts/cassandra
+            setup_local_dir: setup_scripts/cassandra
+            setup_remote_dir: setup_scripts/cassandra

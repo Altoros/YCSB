@@ -32,12 +32,12 @@ def setup_fabric_env(conf):
     env.roledefs['servers'] = conf.server_conf.hosts_addresses
 
 
-def execute_shell_scripts(scripts, scripts_names, dest):
+def execute_shell_scripts(sources, scripts_names, dest):
     make_remote_dirs(dest)
 
-    for f in scripts:
-        put(f, dest)
-
+    for src in sources:
+        put(src, dest)
+        
     with cd(dest):
         for f in scripts_names:
             sudo('sh %s' % f)
@@ -47,26 +47,26 @@ def execute_shell_scripts(scripts, scripts_names, dest):
 @roles('clients')
 def setup_clients(conf):
     make_remote_dirs(conf.benchmark_home_dir)
-    execute_shell_scripts(conf.client_conf.setup_local_scripts,
+    execute_shell_scripts(conf.client_conf.setup_local_files,
                           conf.client_conf.setup_scripts_names,
-                          conf.client_conf.setup_remote_scripts_dir)
+                          conf.client_conf.setup_remote_dir)
  
 
 @parallel
 @roles('servers')
 def setup_servers(conf):
     make_remote_dirs(conf.benchmark_home_dir)
-    execute_shell_scripts(conf.server_conf.setup_local_scripts,
+    execute_shell_scripts(conf.server_conf.setup_local_files,
                           conf.server_conf.setup_scripts_names,
-                          conf.server_conf.setup_remote_scripts_dir)
+                          conf.server_conf.setup_remote_dir)
 
 
 @parallel
 @roles('servers')
 def setup_servers_db(conf):
-    execute_shell_scripts(conf.server_conf.setup_db_local_scripts,
+    execute_shell_scripts(conf.server_conf.setup_db_local_files,
                           conf.server_conf.setup_db_scripts_names,
-                          conf.server_conf.setup_db_remote_scripts_dir)
+                          conf.server_conf.setup_db_remote_dir)
 
 
 @task
