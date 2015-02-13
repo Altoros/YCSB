@@ -2,7 +2,7 @@
 #
 remote_home_dir: ~/benchmarks
 remote_logs_dir: logs
-local_home_dir: 
+local_home_dir:
 local_logs_dir: benchmark_logs
 
 
@@ -13,17 +13,17 @@ connection:
 
 
 clients:
-    # These two options used to execute all scripts from 'setup_scripts_local_dir'
+    # These two options used to execute all scripts from $setup_scripts_local_dir
     # directory on remote machines. Before executing scripts are uploaded onto the
-    # remote machine into 'setup_scripts_remote_dir' directory.
+    # remote machine into $setup_scripts_remote_dir directory.
     # Warning! Scripts executed under root privileges.
     #
-    setup_local_dir:  setup_scripts/client
+    setup_local_dir:  setup_scripts/client/ubuntu
     setup_remote_dir: setup_scripts/client
 
     hosts:
         - desc: c1            # Just description to make it human readable
-          addr: 50.97.182.66  # Host name or IP-address
+          addr: 10.0.2.24     # Host name or IP-address
 
     bundles: [ycsb.jar]    # List of files to load on hosts into $remote_home_dir
     ycsbexe: ycsb.jar      # YCSB executable file
@@ -31,7 +31,7 @@ clients:
     # Database driver specific settings
     #
     db_profiles:
-        mongo:
+        cassandra:
             # All key-value properties from this section are passed as cli params
             # for ycsb executable.
             # Therefore the result cli params string represented as list of values
@@ -40,16 +40,8 @@ clients:
             # comma separated entries.
             #
             ycsb:
-                db: com.yahoo.ycsb.db.MongoDbClient2_13
-                mongodb.url: 'mongodb://10.0.2.23:27017'
-                mongodb.database: ycsb
-                mongodb.writeConcern: journaled
-                mongodb.readPreference: primaryPreferred
-
-        cassandra:
-            ycsb:
-                db: com.yahoo.ycsb.BasicDB
-                seeds: [192.168.38.1, 192.168.38.2]
+                db: com.yahoo.ycsb.CassandraDB
+                seeds: [10.0.2.23]
                 durable: false
                 write_cons_lvl: ONE
                 read_cons_lvl : QUORUM
@@ -58,43 +50,35 @@ clients:
     #
     workloads:
         workloadA:
-            # All key-value properties from 'properties' section are passed as cli
+            # All key-value properties from $properties section are passed as cli
             # params for ycsb executable.
             # Therefore the result cli params string represented as list of values
             # of the form '-p key=ycsb['properties'][key]' separated by spaces.
             # If value of the key is list then it will be converted to string with
             # comma separated entries.
             #
-            # Parameters from 'options' section are passed to ycsb executable
+            # Parameters from $options section are passed to ycsb executable
             # directly as they are represented in list entries.
             #
             ycsb:
                 options: [-load, -s]
                 properties:
                     workload: com.yahoo.ycsb.workloads.CoreWorkload
-                    threadcount: 10
-                    recordcount:    69278283
-                    operationcount: 23300000
+                    threadcount: 7
+                    recordcount:    7777777
                     insertproportion: 1.0
-                    requestdistribution: uniform
 
 
 servers:
     bundles: []
-    setup_local_dir:  setup_scripts/client
+    setup_local_dir:  setup_scripts/client/ubuntu
     setup_remote_dir: setup_scripts/server
 
     hosts:
         - desc: s1
           addr: 50.97.182.67
 
-        - desc: s2
-          addr: 50.97.182.68
-
-        - desc: s3
-          addr: 50.97.182.69
-
     db_profiles:
         cassandra:
-            setup_local_dir: setup_scripts/cassandra
+            setup_local_dir: setup_scripts/cassandra/ubuntu
             setup_remote_dir: setup_scripts/cassandra
