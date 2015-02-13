@@ -22,11 +22,11 @@ from config import BenchmarkConfig
 BENCHMARK_CONF_PATH = 'benchmark_conf.yaml' 
 
 
-def curr_host():
+def _curr_host():
     return state.env['host']
 
 
-def setup_fabric_env(conf):
+def _setup_fabric_env(conf):
     conn = conf.connection_parameters
 
     env.user = conn.get('user')
@@ -37,7 +37,7 @@ def setup_fabric_env(conf):
     env.roledefs['servers'] = conf.server_conf.hosts_addresses
 
 
-def execute_shell_scripts(sources, scripts_names, dest):
+def _execute_shell_scripts(sources, scripts_names, dest):
     make_remote_dirs(dest)
 
     for src in sources:
@@ -46,33 +46,33 @@ def execute_shell_scripts(sources, scripts_names, dest):
     with cd(dest):
         for f in scripts_names:
             sudo('chmod +x %s' % f)
-            sudo('./%s %s' % (f, curr_host()))
+            sudo('./%s %s' % (f, _curr_host()))
 
 
 @parallel
 @roles('clients')
-def setup_clients(conf):
-    make_remote_dirs(conf.benchmark_home_dir)
-    execute_shell_scripts(conf.client_conf.setup_local_files,
-                          conf.client_conf.setup_scripts_names,
-                          conf.client_conf.setup_remote_dir)
+def _setup_clients(conf):
+    make_remote_dirs(conf.benchmark_remote_home_dir)
+    _execute_shell_scripts(conf.client_conf.setup_local_files,
+                           conf.client_conf.setup_scripts_names,
+                           conf.client_conf.setup_remote_dir)
  
 
 @parallel
 @roles('servers')
-def setup_servers(conf):
-    make_remote_dirs(conf.benchmark_home_dir)
-    execute_shell_scripts(conf.server_conf.setup_local_files,
-                          conf.server_conf.setup_scripts_names,
-                          conf.server_conf.setup_remote_dir)
+def _setup_servers(conf):
+    make_remote_dirs(conf.benchmark_remote_home_dir)
+    _execute_shell_scripts(conf.server_conf.setup_local_files,
+                           conf.server_conf.setup_scripts_names,
+                           conf.server_conf.setup_remote_dir)
 
 
 @parallel
 @roles('servers')
-def setup_servers_db(conf):
-    execute_shell_scripts(conf.server_conf.setup_db_local_files,
-                          conf.server_conf.setup_db_scripts_names,
-                          conf.server_conf.setup_db_remote_dir)
+def _setup_servers_db(conf):
+    _execute_shell_scripts(conf.server_conf.setup_db_local_files,
+                           conf.server_conf.setup_db_scripts_names,
+                           conf.server_conf.setup_db_remote_dir)
 
 
 @task
@@ -87,9 +87,9 @@ def setup_db(config_path=BENCHMARK_CONF_PATH, db_profile=None):
     check_arg_not_blank(db_profile, 'db_profile')
 
     conf = BenchmarkConfig(config_path=config_path, db_profile=db_profile)
-    setup_fabric_env(conf)
+    _setup_fabric_env(conf)
 
-    execute(setup_servers_db, conf)
+    execute(_setup_servers_db, conf)
 
 
 @task
@@ -102,7 +102,7 @@ def setup_env(config_path=BENCHMARK_CONF_PATH):
     check_arg_not_blank(config_path, 'config_path')
     
     conf = BenchmarkConfig(config_path=config_path)
-    setup_fabric_env(conf)
+    _setup_fabric_env(conf)
 
-    execute(setup_clients, conf)
-    execute(setup_servers, conf)
+    execute(_setup_clients, conf)
+    execute(_setup_servers, conf)

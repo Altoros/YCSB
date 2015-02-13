@@ -16,7 +16,7 @@ from fabric.api import task
 
 from util import bg_sudo
 from util import check_arg_not_blank
-from util import get_log_file_name
+from util import get_log_file_name_formatter
 from util import make_local_dirs
 from util import make_remote_dirs
 from util import path
@@ -24,18 +24,18 @@ from util import sudo_kill_11
 
 from config import BenchmarkConfig
 
-import time
+
+_BENCHMARK_CONF_PATH = 'benchmark_conf.yaml'
 
 
-BENCHMARK_CONF_PATH = 'benchmark_conf.yaml' 
-START_TIME = time.strftime('%d-%b-%Y_%H-%M-%S')
+log_file_name_formatter = get_log_file_name_formatter()
 
 
-def curr_host():
+def _curr_host():
     return state.env['host']
 
 
-def setup_fabric_env(conf):
+def _setup_fabric_env(conf):
     conn = conf.connection_parameters
 
     env.user = conn.get('user')
@@ -46,15 +46,15 @@ def setup_fabric_env(conf):
     env.roledefs['servers'] = conf.server_conf.hosts_addresses
 
 
-def get_stats_log_path(conf, host):
-    log_file = get_log_file_name( '%s-stats' % conf.workload_name, START_TIME, host )
-    return path(conf.workload_logs_dir, log_file)
+def _get_stats_log_path(conf, host):
+    log_file = log_file_name_formatter('%s-stats' % conf.workload_name, host)
+    return path(conf.benchmark_remote_logs_dir, log_file)
 
 
 @parallel
 @roles('servers')
-def start_server_stats(conf):
-    log_path = get_stats_log_path(conf, curr_host())
+def _start_server_stats(conf):
+    log_path = _get_stats_log_path(conf, _curr_host())
     cmd = 'sar -o %s 1 %s' % (log_path, 2*60*60)  # monitor stats limit is 2 hours
 
     return bg_sudo(cmd)
@@ -62,106 +62,104 @@ def start_server_stats(conf):
 
 @parallel
 @roles('servers')
-def stop_server_stats(host_to_pids):
-    sudo_kill_11(host_to_pids[curr_host()])
+def _stop_server_stats(host_to_pids):
+    sudo_kill_11(host_to_pids[_curr_host()])
 
 
-def get_ycsb_options(conf):
-    ycsb_params = conf.client_conf.workload_parameters.get('ycsb')
-    db_params   = conf.client_conf.db_profile_parameters.get('ycsb')
+def _get_ycsb_options(conf):
+    wl_params = conf.client_conf.workload_parameters
+    db_params = conf.client_conf.db_parameters
 
-    value_to_str    = lambda v: ','.join(v) if isinstance(v, list) else v
-    property_to_str = lambda k, v: '-p %s=%s' % (k, value_to_str(v))
-    dict_to_list    = lambda dic, fn: [fn(k, v) for (k, v) in dic.iteritems()]
+    value_to_str = lambda v: ','.join(v) if isinstance(v, list) else v
+    prop_to_str  = lambda k, v: '-p %s=%s' % (k, value_to_str(v))
+    dict_to_list = lambda dic, fn: [fn(k, v) for (k, v) in dic.iteritems()]
 
     options = []
-    options += ycsb_params.get('options')
-    options += dict_to_list(ycsb_params.get('properties'), property_to_str)
-    options += dict_to_list(db_params, property_to_str)
+    options += wl_params.get('options')
+    options += dict_to_list(wl_params.get('properties'), prop_to_str)
+    options += dict_to_list(db_params, prop_to_str)
 
     return ' '.join(options)
     
 
-def get_workload_log_path(conf, host):
-    log_file = get_log_file_name(conf.workload_name, START_TIME, host)
-    return path(conf.workload_logs_dir, log_file)
+def _get_workload_log_path(conf, host):
+    log_file = log_file_name_formatter(conf.workload_name, host)
+    return path(conf.benchmark_remote_logs_dir, log_file)
 
 
 @parallel
 @roles('clients')
-def execute_workload(conf):
+def _execute_workload(conf):
     ycsbexe  = conf.client_conf.ycsb_executable_name
-    options  = get_ycsb_options(conf)
-    log_path = get_workload_log_path(conf, curr_host())
+    options  = _get_ycsb_options(conf)
+    log_path = _get_workload_log_path(conf, _curr_host())
 
     cmd = 'java -jar %s %s >%s 2>&1' % (ycsbexe, options, log_path)
 
-    with cd(conf.benchmark_home_dir):
+    with cd(conf.benchmark_remote_home_dir):
         run(cmd, warn_only=True)
 
 
 @parallel
 @roles('servers')
-def collect_benchmark_server_results(conf):
-    get( get_stats_log_path(conf, curr_host()), conf.workload_local_logs_dir )
+def _collect_benchmark_server_results(conf):
+    get(_get_stats_log_path(conf, _curr_host()), conf.benchmark_local_logs_dir)
 
 
 @parallel
 @roles('clients')
-def collect_benchmark_client_results(conf):
-    get( get_workload_log_path(conf, curr_host()), conf.workload_local_logs_dir )
+def _collect_benchmark_client_results(conf):
+    get(_get_workload_log_path(conf, _curr_host()), conf.benchmark_local_logs_dir)
 
 
 @parallel
 @roles('clients', 'servers')
-def setup_workload_environment(conf):
-    make_remote_dirs(conf.workload_logs_dir)
+def _setup_workload_environment(conf):
+    make_remote_dirs(conf.benchmark_remote_logs_dir)
 
 
-def test_cycle(conf):
-    execute(setup_workload_environment, conf)
-    start_server_stats_result = execute(start_server_stats, conf)
-    execute(execute_workload, conf)
-    execute(stop_server_stats, start_server_stats_result)
+def _test_cycle(conf):
+    execute(_setup_workload_environment, conf)
+    start_server_stats_result = execute(_start_server_stats, conf)
+    execute(_execute_workload, conf)
+    execute(_stop_server_stats, start_server_stats_result)
 
-    make_local_dirs(conf.workload_local_logs_dir)
-
-    execute(collect_benchmark_server_results, conf)
-    execute(collect_benchmark_client_results, conf)
+    make_local_dirs(conf.benchmark_local_logs_dir)
+    execute(_collect_benchmark_server_results, conf)
+    execute(_collect_benchmark_client_results, conf)
 
 
 @parallel
 @roles('clients')
-def deploy_benchmark(conf):
-    make_remote_dirs(conf.benchmark_home_dir)
+def _deploy_benchmark(conf):
+    make_remote_dirs(conf.benchmark_remote_home_dir)
 
-    for src in conf.client_conf.bundles:
-        put(src, conf.benchmark_home_dir)
+    for src in conf.client_conf.uploads:
+        put(src, conf.benchmark_remote_home_dir)
 
 
-def deploy_cycle(conf):
-    execute(deploy_benchmark, conf)
+def _deploy_cycle(conf):
+    execute(_deploy_benchmark, conf)
 
 
 @task
 @runs_once
-def deploy_benchmark(config_path=BENCHMARK_CONF_PATH):
+def benchmark_deploy(config_path=_BENCHMARK_CONF_PATH):
     """Deploys benchmark bundle for specified workload.
        Params:
-           config_path  : path to benchmark config if YAML format
-           workload_name: name of workload to run
+           config_path: path to benchmark config if YAML format
     """
     check_arg_not_blank(config_path, 'config_path')
 
     conf = BenchmarkConfig(config_path=config_path)
-    setup_fabric_env(conf)
+    _setup_fabric_env(conf)
 
-    deploy_cycle(conf)
+    _deploy_cycle(conf)
 
 
 @task
 @runs_once
-def run_benchmark(config_path=BENCHMARK_CONF_PATH, workload_name=None,
+def benchmark_run(config_path=_BENCHMARK_CONF_PATH, workload_name=None,
                   db_profile=None):
     """Starts the whole cycle for specified benchmark.
        Params:
@@ -175,6 +173,6 @@ def run_benchmark(config_path=BENCHMARK_CONF_PATH, workload_name=None,
 
     conf = BenchmarkConfig(config_path=config_path, workload_name=workload_name,
                            db_profile=db_profile)
-    setup_fabric_env(conf)
+    _setup_fabric_env(conf)
     
-    test_cycle(conf)
+    _test_cycle(conf)

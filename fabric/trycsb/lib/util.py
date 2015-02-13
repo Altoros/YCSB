@@ -9,6 +9,7 @@ from fabric.api import sudo
 
 import errno
 import sys
+import time
 
 
 def fault(msg):
@@ -31,8 +32,9 @@ def path(*parts):
     return '/'.join(parts)
 
 
-def get_log_file_name(file_name, time_str, host):
-    return '%s__%s__%s.log' % (file_name, host, time_str)
+def get_log_file_name_formatter():
+    _START_TIME = time.strftime('%d-%b-%Y_%H-%M-%S')
+    return lambda file_name, host: '%s__%s__%s.log' % (file_name, host, _START_TIME)
 
 
 def install_pckg(pckg):

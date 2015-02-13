@@ -13,7 +13,7 @@ from os import listdir
 from os.path import isfile
 
 
-def parse_yaml(src):
+def _parse_yaml(src):
     try:
         f = open(src, 'r')
         return yaml.load(f)
@@ -22,7 +22,7 @@ def parse_yaml(src):
         fault( "can not read hosts file '%s': %s" % (src, e.strerror) )
 
 
-def script_names(src_dir):
+def _script_names(src_dir):
     if not src_dir:
         return []
 
@@ -31,7 +31,7 @@ def script_names(src_dir):
     return [f for f in listdir(src_dir) if is_script(f)]
 
 
-def to_file_paths(prefix_path, file_names):
+def _to_file_paths(prefix_path, file_names):
     return map(lambda n: path(prefix_path, n), file_names)
 
 
@@ -42,25 +42,30 @@ class BenchmarkConfig():
         self._workload_name = workload_name
         self._db_profile = db_profile
 
-        self._conf = parse_yaml(config_path)
-        self._client_conf = ClientConfig(self, self._conf['clients'])
-        self._server_conf = ServerConfig(self, self._conf['servers'])
-
-    @classmethod
-    def hosts_to_addresses(cls, conf):
-        return map(lambda h: h['addr'], conf.get('hosts'))
+        self._conf = _parse_yaml(config_path)
+        self._client_conf = _ClientConfig(self, self._conf['clients'])
+        self._server_conf = _ServerConfig(self, self._conf['servers'])
 
     @property
     def connection_parameters(self):
         return self._conf.get('connection')
 
     @property
-    def benchmark_home_dir(self):
-        return not_empty( self._conf['remote_home_dir'], self._CURRENT_DIR )
+    def benchmark_remote_home_dir(self):
+        return not_empty(self._conf['benchmark_remote_home_dir'], self._CURRENT_DIR)
+
+    @property
+    def benchmark_remote_logs_dir(self):
+        remote_logs_dir = not_empty(self._conf['benchmark_remote_logs_dir'], self._CURRENT_DIR)
+        return path(self.benchmark_remote_home_dir, remote_logs_dir, self.workload_name, self.db_profile)
 
     @property
     def benchmark_local_home_dir(self):
-        return not_empty( self._conf['local_home_dir'], self._CURRENT_DIR )
+        return not_empty(self._conf['benchmark_local_dir'], self._CURRENT_DIR)
+
+    @property
+    def benchmark_local_logs_dir(self):
+        return path(self.benchmark_local_home_dir, self.workload_name, self.db_profile)
 
     @property
     def db_profile(self):
@@ -71,16 +76,6 @@ class BenchmarkConfig():
         return self._workload_name
 
     @property
-    def workload_local_logs_dir(self):
-        local_logs_dir = not_empty(self._conf['local_logs_dir'], self._CURRENT_DIR)
-        return path(self.benchmark_local_home_dir, local_logs_dir, self.db_profile)
-
-    @property
-    def workload_logs_dir(self):
-        remote_logs_dir = not_empty(self._conf['remote_logs_dir'], self._CURRENT_DIR)
-        return path(self.benchmark_home_dir, remote_logs_dir, self.workload_name)
-
-    @property
     def client_conf(self):
         return self._client_conf
 
@@ -88,12 +83,8 @@ class BenchmarkConfig():
     def server_conf(self):
         return self._server_conf
 
-    @property
-    def options(self):
-        return copy.deepcopy(self._conf)
 
-
-class ClientConfig():
+class _ClientConfig():
 
     def __init__(self, base_conf, cli_conf):
         self._base_conf = base_conf
@@ -101,14 +92,14 @@ class ClientConfig():
 
     @property
     def hosts_addresses(self):
-        return map(lambda h: h['addr'], self._cli_conf.get('hosts'))
+        return self._cli_conf.get('hosts')
 
     @property
     def ycsb_executable_name(self):
         return self._cli_conf['ycsbexe']
 
     @property
-    def db_profile_parameters(self):
+    def db_parameters(self):
         return self._cli_conf.get('db_profiles')[self._base_conf.db_profile]
 
     @property
@@ -116,8 +107,8 @@ class ClientConfig():
         return self._cli_conf.get('workloads')[self._base_conf.workload_name]
 
     @property
-    def bundles(self):
-        return self._cli_conf.get('bundles')
+    def uploads(self):
+        return self._cli_conf.get('uploads')
 
     @property
     def setup_local_dir(self):
@@ -129,14 +120,14 @@ class ClientConfig():
 
     @property
     def setup_scripts_names(self):
-        return script_names(self.setup_local_dir)
+        return _script_names(self.setup_local_dir)
         
     @property
     def setup_local_files(self):
-        return to_file_paths(self.setup_local_dir, listdir(self.setup_local_dir))
+        return _to_file_paths(self.setup_local_dir, listdir(self.setup_local_dir))
 
     
-class ServerConfig():
+class _ServerConfig():
 
     def __init__(self, base_conf, srv_conf):
         self._base_conf = base_conf
@@ -144,10 +135,10 @@ class ServerConfig():
 
     @property
     def hosts_addresses(self):
-        return BenchmarkConfig.hosts_to_addresses(self._srv_conf)
+        return self._srv_conf.get('hosts')
 
     @property
-    def db_profile_parameters(self):
+    def db_parameters(self):
         return self._srv_conf.get('db_profiles')[self._base_conf.db_profile]
 
     @property
@@ -160,25 +151,24 @@ class ServerConfig():
 
     @property
     def setup_scripts_names(self):
-        return script_names(self.setup_local_dir)
+        return _script_names(self.setup_local_dir)
         
     @property
     def setup_local_files(self):
-        return to_file_paths(self.setup_local_dir, listdir(self.setup_local_dir))
+        return _to_file_paths(self.setup_local_dir, listdir(self.setup_local_dir))
 
     @property
     def setup_db_local_dir(self):
-        return self._srv_conf['db_profiles'][self._base_conf.db_profile]['setup_local_dir']
+        return self.db_parameters['setup_local_dir']
 
     @property
     def setup_db_remote_dir(self):
-        return self._srv_conf['db_profiles'][self._base_conf.db_profile]['setup_remote_dir']
+        return self.db_parameters['setup_remote_dir']
 
     @property
     def setup_db_scripts_names(self):
-        return script_names(self.setup_db_local_dir)
+        return _script_names(self.setup_db_local_dir)
 
     @property
     def setup_db_local_files(self):
-        return to_file_paths(self.setup_db_local_dir, listdir(self.setup_db_local_dir))
-
+        return _to_file_paths(self.setup_db_local_dir, listdir(self.setup_db_local_dir))
