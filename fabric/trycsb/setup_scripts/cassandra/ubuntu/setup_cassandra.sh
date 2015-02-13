@@ -29,4 +29,4 @@ tokens['50.97.182.67']="-9223372036854775808"
 tokens['50.97.182.68']="-3074457345618258603"
 tokens['50.97.182.69']="3074457345618258602"
 
-sed -i.sed.bak "s|initial_token: 0|initial_token: '${tokens[$CURRENT_HOST_ADDR]}'|g" /etc/dse/cassandra/cassandra.yaml
+sed -i.sed.bak "s|initial_token: 0|initial_token: ${tokens[$CURRENT_HOST_ADDR]}|g" /etc/dse/cassandra/cassandra.yaml
