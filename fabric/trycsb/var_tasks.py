@@ -8,6 +8,7 @@ from fabric.api import parallel
 from fabric.api import roles
 from fabric.api import runs_once
 from fabric.api import sudo
+from fabric.api import settings
 from fabric.api import task
 
 from lib.util import check_arg_not_blank
@@ -32,23 +33,28 @@ def setup_fabric_env(conf):
 @parallel
 @roles('servers')
 def virgin_servers_for_mongo():
-    sudo('service mysql stop')
-    sudo('service apache2 stop')
-    sudo('service bind9 stop')
-    sudo('service mongod start')
-    sudo('service counchbase-server stop')
-    sudo('service dse stop')
+    with settings(warn_only=True):
+        sudo('service mysql stop')
+        sudo('service apache2 stop')
+        sudo('service bind9 stop')
+        sudo('service mongod start')
+        sudo('service counchbase-server stop')
+        sudo('service dse stop')
 
         
 @parallel
 @roles('servers')
 def virgin_servers_for_cassandra():
-    sudo('service mysql stop')
-    sudo('service apache2 stop')
-    sudo('service bind9 stop')
-    sudo('service mongod stop')
-    sudo('service counchbase-server stop')
-    sudo('service dse start')
+    with settings(warn_only=True):
+        sudo('service mysql stop')
+        sudo('service apache2 stop')
+        sudo('service bind9 stop')
+        sudo('service mongod stop')
+        sudo('service counchbase-server stop')
+
+        sudo('service dse stop')
+        sudo('rm /var/log/cassandra/*.log')
+        sudo('service dse start')
    
 
 virgin_servers_handlers = {
@@ -63,7 +69,7 @@ def virgin_servers(config_path=BENCHMARK_CONF_PATH, db_profile=None):
     check_arg_not_blank(config_path, 'config_path')
     check_arg_not_blank(db_profile, 'db_profile')
  
-    conf = BenchmarkConfig(benchmark_conf_path)
+    conf = BenchmarkConfig(config_path)
     setup_fabric_env(conf)
 
     execute(virgin_servers_handlers[db_profile])
@@ -71,6 +77,7 @@ def virgin_servers(config_path=BENCHMARK_CONF_PATH, db_profile=None):
 
 @task
 def copy_cassandra_confs():
+    get('/etc/dse/cassandra/cassandra-topology.properties')
     get('/etc/dse/cassandra/cassandra.yaml')
     get('/etc/dse/cassandra/cassandra-env.sh')
     get('/etc/dse/cassandra/commitlog_archiving.properties')
