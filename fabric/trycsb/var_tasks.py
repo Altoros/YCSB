@@ -31,14 +31,29 @@ def setup_fabric_env(conf):
 
 @parallel
 @roles('servers')
+def virgin_servers_for_mongo():
+    sudo('service mysql stop')
+    sudo('service apache2 stop')
+    sudo('service bind9 stop')
+    sudo('service mongod start')
+    sudo('service counchbase-server stop')
+    sudo('service dse stop')
+
+        
+@parallel
+@roles('servers')
 def virgin_servers_for_cassandra():
     sudo('service mysql stop')
     sudo('service apache2 stop')
     sudo('service bind9 stop')
-
+    sudo('service mongod stop')
+    sudo('service counchbase-server stop')
+    sudo('service dse start')
+   
 
 virgin_servers_handlers = {
-    'cassandra': virgin_servers_for_cassandra
+    'cassandra': virgin_servers_for_cassandra,
+    'mongo': virgin_servers_for_mongo
 }
 
     
@@ -59,4 +74,4 @@ def copy_cassandra_confs():
     get('/etc/dse/cassandra/cassandra.yaml')
     get('/etc/dse/cassandra/cassandra-env.sh')
     get('/etc/dse/cassandra/commitlog_archiving.properties')
-    
+    get('/etc/default/dse')
