@@ -2,6 +2,7 @@
 
    Serj Sintsov, 2015
 """
+from fabric import state
 from fabric.api import cd
 from fabric.api import env
 from fabric.api import execute
@@ -19,6 +20,10 @@ from config import BenchmarkConfig
 
 
 BENCHMARK_CONF_PATH = 'benchmark_conf.yaml' 
+
+
+def curr_host():
+    return state.env['host']
 
 
 def setup_fabric_env(conf):
@@ -40,7 +45,8 @@ def execute_shell_scripts(sources, scripts_names, dest):
         
     with cd(dest):
         for f in scripts_names:
-            sudo('sh %s' % f)
+            sudo('chmod +x %s' % f)
+            sudo('./%s %s' % (f, curr_host()))
 
 
 @parallel
