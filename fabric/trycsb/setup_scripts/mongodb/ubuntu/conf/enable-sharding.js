@@ -1,0 +1,5 @@
+db.adminCommand({ addshard : "shard0/50.97.182.67:27000,50.97.182.68:27000"})
+db.adminCommand({ addshard : "shard1/50.97.182.68:37000,50.97.182.69:37000"})
+db.adminCommand({ addshard : "shard2/50.97.182.67:37000,50.97.182.69:27000"})
+db.adminCommand({enablesharding : "ycsb"})
+db.adminCommand({shardCollection : "ycsb.usertable", key : {_id:1}})
