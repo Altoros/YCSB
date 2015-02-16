@@ -1,5 +1,6 @@
 package com.yahoo.ycsb.db;
 
+import com.mongodb.WriteConcern;
 import junit.framework.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -26,5 +27,11 @@ public class MongoConfigTest {
     @Test
     public void testGetHostsDefaultURL() {
         Assert.assertEquals(MongoConfig.DEFAULT_URL, config.getHosts());
+    }
+
+    @Test
+    public void testWriteConcernReplicaAcknowledged() {
+        properties.put(MongoConfig.WRITE_CONCERN, "replica_acknowledged");
+        Assert.assertEquals(WriteConcern.REPLICA_ACKNOWLEDGED, config.getWriteConcern());
     }
 }
