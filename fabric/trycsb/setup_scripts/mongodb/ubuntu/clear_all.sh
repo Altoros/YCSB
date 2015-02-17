@@ -2,7 +2,7 @@
 
 echo "killing mongod and mongos"
 killall mongod
-killall monogs
+killall mongos
 
 echo "removing data and log files"
 rm -rf /disk1/mongodb-data/db/
