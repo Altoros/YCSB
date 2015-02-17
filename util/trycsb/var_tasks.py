@@ -59,24 +59,6 @@ def virgin_servers_for_cassandra():
         sudo('service dse start')
 
 
-virgin_servers_handlers = {
-    'cassandra': virgin_servers_for_cassandra,
-    'mongo': virgin_servers_for_mongo
-}
-
-    
-@task
-@runs_once
-def virgin_servers(config_path=BENCHMARK_CONF_PATH, db_profile=None):
-    check_arg_not_blank(config_path, 'config_path')
-    check_arg_not_blank(db_profile, 'db_profile')
- 
-    conf = BenchmarkConfig(config_path)
-    setup_fabric_env(conf)
-
-    execute(virgin_servers_handlers[db_profile])
-
-
 @parallel
 @roles('servers')
 def _do_stop_all():
@@ -92,6 +74,30 @@ def _do_stop_all():
        sudo('service dse stop')
 
 
+@parallel
+@roles('servers', 'clients')
+def _do_reboot_machines():
+    with settings(warn_only=True):
+       sudo('reboot')
+
+
+@task
+@runs_once
+def virgin_servers(config_path=BENCHMARK_CONF_PATH, db_profile=None):
+    check_arg_not_blank(config_path, 'config_path')
+    check_arg_not_blank(db_profile, 'db_profile')
+
+    conf = BenchmarkConfig(config_path)
+    setup_fabric_env(conf)
+
+    virgin_servers_handlers = {
+        'cassandra': virgin_servers_for_cassandra,
+        'mongo': virgin_servers_for_mongo
+    }
+
+    execute(virgin_servers_handlers[db_profile])
+
+
 @task
 @runs_once
 def stop_all_on_servers(config_path=BENCHMARK_CONF_PATH):
@@ -104,12 +110,13 @@ def stop_all_on_servers(config_path=BENCHMARK_CONF_PATH):
 
 
 @task
-def copy_cassandra_confs():
-    get('/etc/dse/cassandra/cassandra-topology.properties')
-    get('/etc/dse/cassandra/cassandra.yaml')
-    get('/etc/dse/cassandra/cassandra-env.sh')
-    get('/etc/dse/cassandra/commitlog_archiving.properties')
-    get('/etc/default/dse')
+def reboot_clients_servers(config_path=BENCHMARK_CONF_PATH):
+    check_arg_not_blank(config_path, 'config_path')
+
+    conf = BenchmarkConfig(config_path)
+    setup_fabric_env(conf)
+
+    execute(_do_reboot_machines)
 
 
 @task
