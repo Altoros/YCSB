@@ -13,6 +13,7 @@
 
   <modules>
     <module>ycsb-parent-pom</module>
+    <module>core</module>
     <module>dbs</module>
   </modules>
 
