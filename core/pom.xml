@@ -1,15 +1,22 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+
   <modelVersion>4.0.0</modelVersion>
+
   <parent>
     <groupId>com.yahoo.ycsb</groupId>
-    <artifactId>root</artifactId>
+    <artifactId>ycsb-parent-pom</artifactId>
     <version>0.1.4</version>
+    <relativePath>../ycsb-parent-pom/pom.xml</relativePath>
   </parent>
   
   <artifactId>core</artifactId>
-  <name>Core YCSB</name>
+  <version>0.1.4</version>
   <packaging>jar</packaging>
+
+  <name>YCSB Core</name>
 
   <properties>
      <jackson.api.version>1.9.4</jackson.api.version>
@@ -21,17 +28,12 @@
       <artifactId>jackson-mapper-asl</artifactId>
       <version>${jackson.api.version}</version>
     </dependency>
+
     <dependency>
       <groupId>org.codehaus.jackson</groupId>
       <artifactId>jackson-core-asl</artifactId>
       <version>${jackson.api.version}</version>
     </dependency>
-    <dependency>
-      <groupId>org.testng</groupId>
-      <artifactId>testng</artifactId>
-      <version>6.1.1</version>
-      <scope>test</scope>
-    </dependency>
-  </dependencies>	
+  </dependencies>
 
 </project>

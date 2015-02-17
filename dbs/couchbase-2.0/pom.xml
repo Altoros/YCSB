@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+                      http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.yahoo.ycsb</groupId>
+        <artifactId>ycsb-parent-pom</artifactId>
+        <version>0.1.4</version>
+        <relativePath>../../ycsb-parent-pom/pom.xml</relativePath>
+    </parent>
+
+	<artifactId>couchbase-2.0</artifactId>
+	<packaging>jar</packaging>
+    <version>0.1.4</version>
+    <name>YCSB Couchbase 2.0 Binding</name>
+
+    <repositories>
+        <repository>
+            <id>couchbase</id>
+            <url>http://files.couchbase.com/maven2</url>
+        </repository>
+    </repositories>
+
+	<dependencies>
+		<dependency>
+			<groupId>com.yahoo.ycsb</groupId>
+			<artifactId>core</artifactId>
+		</dependency>
+
+        <dependency>
+            <groupId>com.yahoo.ycsb</groupId>
+            <artifactId>memcached</artifactId>
+            <version>0.1.4</version>
+        </dependency>
+
+		<dependency>
+			<groupId>com.couchbase.client</groupId>
+			<artifactId>couchbase-client</artifactId>
+			<version>1.4.3</version>
+		</dependency>
+
+        <dependency>
+			<groupId>org.codehaus.jackson</groupId>
+			<artifactId>jackson-mapper-asl</artifactId>
+			<version>1.9.13</version>
+		</dependency>
+	</dependencies>
+
+    <profiles>
+        <profile>
+            <id>couchbase-2.0-exec</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-assembly-plugin</artifactId>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+
+</project>

@@ -1,0 +1,105 @@
+# Home directory for all benchmarks related files on remote machines
+benchmark_remote_home_dir: ~/benchmarks
+
+# Benchmarks logs directory related to $remote_home_dir
+benchmark_remote_logs_dir: logs
+
+# Local directory for benchmarks results (logs, workload summary, etc)
+# copied from all remote machines involved into benchmark
+benchmark_local_dir: benchmark_results
+
+
+# Remote machines connection details
+connection:
+    user:     ubuntu
+    password: ubuntu
+
+
+# This section described options related to clients machines from which
+# workload will be performed
+clients:
+    # Local directory which contains scripts and configuration files to setup
+    # client machines environment. Scripts to execute is a bash scripts ended
+    # with '*.sh'. These files executed directly on remote machines under root
+    # privileges and must be located at the root of $setup_local_dir directory.
+    setup_local_dir:  setup_scripts/client/ubuntu
+
+    # All content of $setup_local_dir directory will be copied to this remote
+    # directory related to $benchmark_remote_home_dir
+    setup_remote_dir: setup_scripts/client
+
+    # List of client machines IP-addresses
+    hosts: [10.0.2.24]
+
+    # Local files and directories to upload into $remote_home_dir directory
+    uploads: [ycsb.jar]
+
+    # YCSB executable file path related to $remote_home_dir
+    ycsbexe: ycsb.jar
+
+    # YCSB database driver specific settings
+    db_profiles:
+        # Any database profile name.
+        # Section contains only key-value options. They will be passed as cli
+        # params for ycsb.
+        # The result cli params string represented as list of values of the
+        # form '-p key=value' separated by spaces. If value of the key is list
+        # then it will be converted to string with comma separated entries.
+        cassandra:
+            db: com.yahoo.ycsb.CassandraDB
+            seeds: [10.0.2.23]
+            durable: false
+            write_cons_lvl: ONE
+            read_cons_lvl : QUORUM
+
+    # YCSB workload specific settings
+    workloads:
+        # Any workload name.
+        workloadA:
+            # Array of arguments.
+            # These options are passed to ycsb cli args directly as they are
+            # represented in array entries.
+            options: [-load, -s]
+
+            # Section contains only key-value options. They will be passed as cli
+            # params for ycsb.
+            # The result cli params string represented as list of values of the
+            # form '-p key=value' separated by spaces. If value of the key is list
+            # then it will be converted to string with comma separated entries.
+            properties:
+                workload: com.yahoo.ycsb.workloads.CoreWorkload
+                threadcount: 7
+                recordcount: 7777777
+                insertproportion: 1.0
+
+
+# This section described options related to servers machines from which
+# workload will be performed
+servers:
+    # Local directory which contains scripts and configuration files to setup
+    # server machines environment. Scripts to execute is a bash scripts ended
+    # with '*.sh'. These files executed directly on remote machines under root
+    # privileges and must be located at the root of $setup_local_dir directory.
+    setup_local_dir:  setup_scripts/client/ubuntu
+
+    # All content of $setup_local_dir directory will be copied to this remote
+    # directory related to $benchmark_remote_home_dir
+    setup_remote_dir: setup_scripts/server
+
+    # List of servers machines IP-addresses
+    hosts: [50.97.182.67]
+
+    # Server database specific settings
+    db_profiles:
+        # Any database profile name.
+        cassandra:
+
+            # Local directory which contains scripts and configuration files to setup
+            # a certain database on server machine. Scripts to execute is a bash scripts
+            # ended with '*.sh'. These files executed directly on remote machines under
+            # root privileges and must be located at the root of $setup_local_dir directory.
+            setup_local_dir: setup_scripts/cassandra/ubuntu
+
+            # All content of $setup_local_dir directory will be copied to this remote
+            # directory related to $benchmark_remote_home_dir
+            setup_remote_dir: setup_scripts/cassandra
