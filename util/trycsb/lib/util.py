@@ -49,8 +49,7 @@ def pid(cmd):
     get_pid_cmd = "ps -eo pid,command | grep \"%s\"  | grep -v grep | awk '{print $1}'"
     get_pid_cmd = get_pid_cmd % cmd
 
-    with hide('running', 'stdout', 'stderr'):
-        return run(get_pid_cmd)
+    return run(get_pid_cmd)
 
 
 def bg_sudo(src_cmd, out='/dev/null'):

@@ -25,7 +25,7 @@ clients:
     setup_local_dir:  setup_scripts/client/ubuntu
 
     # All content of $setup_local_dir directory will be copied to this remote
-    # directory
+    # directory related to $benchmark_remote_home_dir
     setup_remote_dir: setup_scripts/client
 
     # List of client machines IP-addresses
@@ -83,7 +83,7 @@ servers:
     setup_local_dir:  setup_scripts/client/ubuntu
 
     # All content of $setup_local_dir directory will be copied to this remote
-    # directory
+    # directory related to $benchmark_remote_home_dir
     setup_remote_dir: setup_scripts/server
 
     # List of servers machines IP-addresses
@@ -101,5 +101,5 @@ servers:
             setup_local_dir: setup_scripts/cassandra/ubuntu
 
             # All content of $setup_local_dir directory will be copied to this remote
-            # directory
+            # directory related to $benchmark_remote_home_dir
             setup_remote_dir: setup_scripts/cassandra

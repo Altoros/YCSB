@@ -40,6 +40,7 @@ def virgin_servers_for_mongo():
         sudo('service mongod start')
         sudo('service counchbase-server stop')
         sudo('service dse stop')
+        sudo('killall sar')
 
         
 @parallel
@@ -51,11 +52,12 @@ def virgin_servers_for_cassandra():
         sudo('service bind9 stop')
         sudo('service mongod stop')
         sudo('service counchbase-server stop')
+        sudo('killall sar')
 
         sudo('service dse stop')
         sudo('rm /var/log/cassandra/*.log')
         sudo('service dse start')
-   
+
 
 virgin_servers_handlers = {
     'cassandra': virgin_servers_for_cassandra,
@@ -75,6 +77,32 @@ def virgin_servers(config_path=BENCHMARK_CONF_PATH, db_profile=None):
     execute(virgin_servers_handlers[db_profile])
 
 
+@parallel
+@roles('servers')
+def _do_stop_all():
+    with settings(warn_only=True):
+       sudo('service mysql stop')
+       sudo('service apache2 stop')
+       sudo('service bind9 stop')
+       sudo('service mongod stop')
+       sudo('service counchbase-server stop')
+       sudo('killall sar')
+
+       sudo('service dse stop')
+       sudo('service dse stop')
+
+
+@task
+@runs_once
+def stop_all_on_servers(config_path=BENCHMARK_CONF_PATH):
+    check_arg_not_blank(config_path, 'config_path')
+
+    conf = BenchmarkConfig(config_path)
+    setup_fabric_env(conf)
+
+    execute(_do_stop_all)
+
+
 @task
 def copy_cassandra_confs():
     get('/etc/dse/cassandra/cassandra-topology.properties')
@@ -82,3 +110,9 @@ def copy_cassandra_confs():
     get('/etc/dse/cassandra/cassandra-env.sh')
     get('/etc/dse/cassandra/commitlog_archiving.properties')
     get('/etc/default/dse')
+
+
+@task
+def copy_system_confs():
+    get('/etc/fstab')
+    get('/etc/sysctl.conf')

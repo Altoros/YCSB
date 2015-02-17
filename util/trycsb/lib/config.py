@@ -35,16 +35,26 @@ def _to_file_paths(prefix_path, file_names):
     return map(lambda n: path(prefix_path, n), file_names)
 
 
+def _check_path_without_tilda(path):
+    if path.startswith('~'):
+        fault('Specify path without tilda')
+
+
 class BenchmarkConfig():
     _CURRENT_DIR = '.'
 
     def __init__(self, config_path=None, workload_name=None, db_profile=None):
-        self._workload_name = workload_name
-        self._db_profile = db_profile
+        self._workload_name = workload_name if workload_name else ''
+        self._db_profile = db_profile if db_profile else ''
 
         self._conf = _parse_yaml(config_path)
+
+        _check_path_without_tilda(self.benchmark_remote_home_dir)
+        _check_path_without_tilda(self.benchmark_remote_logs_dir)
+
         self._client_conf = _ClientConfig(self, self._conf['clients'])
         self._server_conf = _ServerConfig(self, self._conf['servers'])
+
 
     @property
     def connection_parameters(self):
@@ -100,11 +110,11 @@ class _ClientConfig():
 
     @property
     def db_parameters(self):
-        return self._cli_conf.get('db_profiles')[self._base_conf.db_profile]
+        return self._cli_conf.get('db_profiles').get(self._base_conf.db_profile)
 
     @property
     def workload_parameters(self):
-        return self._cli_conf.get('workloads')[self._base_conf.workload_name]
+        return self._cli_conf.get('workloads').get(self._base_conf.workload_name)
 
     @property
     def uploads(self):
@@ -116,7 +126,7 @@ class _ClientConfig():
 
     @property
     def setup_remote_dir(self):
-        return self._cli_conf.get('setup_remote_dir')
+        return path(self._base_conf.benchmark_remote_home_dir, self._cli_conf.get('setup_remote_dir'))
 
     @property
     def setup_scripts_names(self):
@@ -139,7 +149,7 @@ class _ServerConfig():
 
     @property
     def db_parameters(self):
-        return self._srv_conf.get('db_profiles')[self._base_conf.db_profile]
+        return self._srv_conf.get('db_profiles').get(self._base_conf.db_profile)
 
     @property
     def setup_local_dir(self):
@@ -147,7 +157,7 @@ class _ServerConfig():
 
     @property
     def setup_remote_dir(self):
-        return self._srv_conf.get('setup_remote_dir')
+        return path(self._base_conf.benchmark_remote_home_dir, self._srv_conf.get('setup_remote_dir'))
 
     @property
     def setup_scripts_names(self):
@@ -159,11 +169,11 @@ class _ServerConfig():
 
     @property
     def setup_db_local_dir(self):
-        return self.db_parameters['setup_local_dir']
+        return self.db_parameters.get('setup_local_dir')
 
     @property
     def setup_db_remote_dir(self):
-        return self.db_parameters['setup_remote_dir']
+        return path(self._base_conf.benchmark_remote_home_dir, self.db_parameters.get('setup_remote_dir'))
 
     @property
     def setup_db_scripts_names(self):
