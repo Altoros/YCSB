@@ -1,108 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>com.yahoo.ycsb</groupId>
-  <artifactId>root</artifactId>
-  <version>0.1.4</version>
+  <artifactId>ycsb-root</artifactId>
   <packaging>pom</packaging>
+  <version>0.1.4</version>
 
   <name>YCSB Root</name>
 
-  <description>
-    This is the top level project that builds, packages the core and all the DB bindings for YCSB infrastructure.
-  </description>
-  <dependencies>
-    <!-- voldemort -->
-    <dependency>
-      <groupId>checkstyle</groupId>
-      <artifactId>checkstyle</artifactId>
-      <version>5.0</version>
-    </dependency>
-    <dependency>
-      <groupId>org.jdom</groupId>
-      <artifactId>jdom</artifactId>
-      <version>1.1</version>
-    </dependency>
-    <!-- Conflicts with Cassandra cql driver -->
-    <!-- <dependency> -->
-    <!--   <groupId>com.google.collections</groupId> -->
-    <!--   <artifactId>google-collections</artifactId> -->
-    <!--   <version>1.0</version> -->
-    <!-- </dependency> -->
-    <!--
-    Nail down slf4j version to 1.6 so that it defaults to no-op logger.
-    http://www.slf4j.org/codes.html#StaticLoggerBinder
-    -->
-    <dependency>
-      <groupId>org.slf4j</groupId>
-      <artifactId>slf4j-api</artifactId>
-      <version>1.6.4</version>
-    </dependency>
-  </dependencies>
- 
-  <!-- Properties Management -->
-  <properties>
-    <maven.assembly.version>2.2.1</maven.assembly.version>
-    <hbase.version>0.98.3-hadoop2</hbase.version>
-    <cassandra.version>2.1.2</cassandra.version>
-    <cassandra.cql.version>2.1.4</cassandra.cql.version>
-    <accumulo.version>1.6.0</accumulo.version>
-    <openjpa.jdbc.version>2.1.1</openjpa.jdbc.version>
-    <mongodb.version>2.12.1</mongodb.version>
-    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <thrift.version>0.8.0</thrift.version>
-  </properties>
-
   <modules>
-    <!-- order is important! -->
-    <!-- to include all needed modules in distribution package place "distribution" module the last.-->
-    <!--<module>aerospike</module>-->
-    <!--<module>cassandra</module>-->
-    <module>core</module>
-    <!--<module>couchbase-2.0</module>-->
-    <!--<module>hbase</module>-->
-    <!--<module>accumulo</module>-->
-    <!--<module>dynamodb</module>-->
-    <!--<module>jdbc</module>-->
-    <!--<module>memcached</module>-->
-    <module>mongodb</module>
-    <!--<module>couchbase-3.0</module>-->
-    <module>mongodb-2.13</module>
-    <module>distribution</module>
+    <module>ycsb-parent-pom</module>
+    <module>dbs</module>
   </modules>
 
-  <build>
-    <plugins>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-compiler-plugin</artifactId>
-        <version>2.3.2</version>
-        <configuration>
-          <source>1.6</source>
-          <target>1.6</target>
-        </configuration>
-      </plugin>
-
-      <!-- Cleanup after all modules, even if they are commented out
-           of this pom -->
-      <plugin>
-        <artifactId>maven-clean-plugin</artifactId>
-        <version>2.4.1</version>
-        <configuration>
-          <filesets>
-            <fileset>
-              <directory>${basedir}</directory>
-              <includes>
-                <include>**/target/**/*.jar</include>
-              </includes>
-              <followSymlinks>false</followSymlinks>
-            </fileset>
-          </filesets>
-        </configuration>
-      </plugin>
-
-    </plugins>
-  </build>
 </project>

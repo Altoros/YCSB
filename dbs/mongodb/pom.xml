@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.yahoo.ycsb</groupId>
+        <artifactId>ycsb-parent-pom</artifactId>
+        <version>0.1.4</version>
+        <relativePath>../../ycsb-parent-pom/pom.xml</relativePath>
+    </parent>
+  
+  <artifactId>mongodb</artifactId>
+  <name>YCSB Mongo DB Binding</name>
+  <packaging>jar</packaging>
+
+  <properties>
+    <mongodb.version>2.12.1</mongodb.version>
+  </properties>
+
+  <dependencies>
+    <dependency>
+      <groupId>org.mongodb</groupId>
+      <artifactId>mongo-java-driver</artifactId>
+      <version>${mongodb.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>com.yahoo.ycsb</groupId>
+      <artifactId>core</artifactId>
+    </dependency>
+  </dependencies>
+
+  <profiles>
+    <profile>
+      <id>mongodb-exec</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-assembly-plugin</artifactId>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
+
+</project>
