@@ -33,8 +33,12 @@ def _setup_fabric_env(conf):
     env.password = conn.get('password')
     env.key_filename = conn.get('key')
 
-    env.roledefs['clients'] = conf.client_conf.hosts_addresses
-    env.roledefs['servers'] = conf.server_conf.hosts_addresses
+
+def _config_hosts_or_cli_hosts(conf):
+    if not env.hosts:
+        return conf.hosts_addresses
+    else:
+        return env.hosts
 
 
 def _execute_shell_scripts(sources, scripts_names, dest):
@@ -50,7 +54,6 @@ def _execute_shell_scripts(sources, scripts_names, dest):
 
 
 @parallel
-@roles('clients')
 def _setup_clients(conf):
     make_remote_dirs(conf.benchmark_remote_home_dir)
     _execute_shell_scripts(conf.client_conf.setup_local_files,
@@ -59,7 +62,6 @@ def _setup_clients(conf):
  
 
 @parallel
-@roles('servers')
 def _setup_servers(conf):
     make_remote_dirs(conf.benchmark_remote_home_dir)
     _execute_shell_scripts(conf.server_conf.setup_local_files,
@@ -68,7 +70,6 @@ def _setup_servers(conf):
 
 
 @parallel
-@roles('servers')
 def _setup_servers_db(conf):
     _execute_shell_scripts(conf.server_conf.setup_db_local_files,
                            conf.server_conf.setup_db_scripts_names,
@@ -89,20 +90,24 @@ def setup_db(config_path=BENCHMARK_CONF_PATH, db_profile=None):
     conf = BenchmarkConfig(config_path=config_path, db_profile=db_profile)
     _setup_fabric_env(conf)
 
-    execute(_setup_servers_db, conf)
+    execute(_setup_servers_db, conf, hosts=_config_hosts_or_cli_hosts(conf.server_conf))
 
 
 @task
 @runs_once
-def setup_env(config_path=BENCHMARK_CONF_PATH):
+def setup_env(config_path=BENCHMARK_CONF_PATH, env_type=None):
     """Setups clients and servers environment (needed packages and setting).
        Params:
            config_path: path to benchmark config if YAML format
+           env_type:    type of the environment 'client' or 'server'
     """
     check_arg_not_blank(config_path, 'config_path')
     
     conf = BenchmarkConfig(config_path=config_path)
     _setup_fabric_env(conf)
 
-    execute(_setup_clients, conf)
-    execute(_setup_servers, conf)
+    if not env_type or env_type == 'client':
+        execute(_setup_clients, conf, hosts=_config_hosts_or_cli_hosts(conf.client_conf))
+
+    if not env_type or env_type == 'server':
+        execute(_setup_servers, conf, hosts=_config_hosts_or_cli_hosts(conf.server_conf))
