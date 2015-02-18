@@ -28,10 +28,21 @@ TOKENS['50.97.182.69']="3074457345618258602"
 rm -R /var/log/cassandra/*
 
 
-echo "Create directories"
+echo "Create/clear $CASSANDRA_COMMITLOG_DIR"
+if [ -z "$CASSANDRA_COMMITLOG_DIR" ]; then
+    echo "Cassandra commitlog dir unspecified"
+    exit 1
+fi
+
 mkdir -p $CASSANDRA_COMMITLOG_DIR
 rm -R $CASSANDRA_COMMITLOG_DIR/*
 chown cassandra:cassandra $CASSANDRA_COMMITLOG_DIR
+
+echo "Create/clear $CASSANDRA_DATA_DIR"
+if [ -z "$CASSANDRA_DATA_DIR" ]; then
+    echo "Cassandra data dir unspecified"
+    exit 1
+fi
 
 mkdir -p $CASSANDRA_DATA_DIR
 rm -R $CASSANDRA_DATA_DIR/*
@@ -48,4 +59,5 @@ sed -i "s|- seeds: \"127.0.0.1\"|- seeds: \"$SEEDS\" $CHANGE_MARK|g" $CASSANDRA_
 sed -i "s|- /var/lib/cassandra/data|- $CASSANDRA_DATA_DIR $CHANGE_MARK|g" $CASSANDRA_CONF
 sed -i "s|commitlog_directory: /var/lib/cassandra/commitlog|commitlog_directory: $CASSANDRA_COMMITLOG_DIR $CHANGE_MARK|g" $CASSANDRA_CONF
 sed -i "s|listen_address: localhost|listen_address: ${LOCAL_ADDRESSES[$CURRENT_HOST_ADDR]} $CHANGE_MARK|g" $CASSANDRA_CONF
+sed -i "s|rpc_address: localhost|rpc_address: $CURRENT_HOST_ADDR $CHANGE_MARK|g" $CASSANDRA_CONF
 
