@@ -15,11 +15,13 @@ from lib.util import check_arg_not_blank
 
 from lib.config import BenchmarkConfig
 
+import time
+import threading
 
-BENCHMARK_CONF_PATH = 'benchmark_conf.yaml' 
 
+BENCHMARK_CONF_PATH = 'benchmark_conf.yaml'
 
-def setup_fabric_env(conf):
+def _setup_fabric_env(conf):
     conn = conf.connection_parameters
 
     env.user = conn.get('user')
@@ -32,38 +34,7 @@ def setup_fabric_env(conf):
 
 @parallel
 @roles('servers')
-def virgin_servers_for_mongo():
-    with settings(warn_only=True):
-        sudo('service mysql stop')
-        sudo('service apache2 stop')
-        sudo('service bind9 stop')
-        sudo('service counchbase-server stop')
-        sudo('service cassandra stop')
-        sudo('killall sar')
-
-        sudo('service mongod stop')
-        sudo('service mongod start')
-
-
-@parallel
-@roles('servers')
-def virgin_servers_for_cassandra():
-    with settings(warn_only=True):
-        sudo('service mysql stop')
-        sudo('service apache2 stop')
-        sudo('service bind9 stop')
-        sudo('service mongod stop')
-        sudo('service counchbase-server stop')
-        sudo('killall sar')
-
-        sudo('service cassandra stop')
-        sudo('rm /var/log/cassandra/*.log')
-        sudo('service cassandra start')
-
-
-@parallel
-@roles('servers')
-def _do_stop_all():
+def _virgin_servers_for_all():
     with settings(warn_only=True):
        sudo('service mysql stop')
        sudo('service apache2 stop')
@@ -72,6 +43,18 @@ def _do_stop_all():
        sudo('service counchbase-server stop')
        sudo('killall sar')
        sudo('service cassandra stop')
+
+
+@parallel
+@roles('servers')
+def _virgin_servers_for_mongo():
+    sudo('service mongod start')
+
+
+@roles('servers')
+def _virgin_servers_for_cassandra():
+    sudo('rm /var/log/cassandra/*.log')
+    sudo('service cassandra start')
 
 
 @parallel
@@ -85,28 +68,19 @@ def _do_reboot_machines():
 @runs_once
 def virgin_servers(config_path=BENCHMARK_CONF_PATH, db_profile=None):
     check_arg_not_blank(config_path, 'config_path')
-    check_arg_not_blank(db_profile, 'db_profile')
 
     conf = BenchmarkConfig(config_path)
-    setup_fabric_env(conf)
+    _setup_fabric_env(conf)
 
     virgin_servers_handlers = {
-        'cassandra': virgin_servers_for_cassandra,
-        'mongo': virgin_servers_for_mongo
+        'cassandra': _virgin_servers_for_cassandra,
+        'mongo': _virgin_servers_for_mongo
     }
 
-    execute(virgin_servers_handlers[db_profile])
+    execute(_virgin_servers_for_all)
 
-
-@task
-@runs_once
-def stop_all_on_servers(config_path=BENCHMARK_CONF_PATH):
-    check_arg_not_blank(config_path, 'config_path')
-
-    conf = BenchmarkConfig(config_path)
-    setup_fabric_env(conf)
-
-    execute(_do_stop_all)
+    if db_profile:
+        execute(virgin_servers_handlers[db_profile])
 
 
 @task
