@@ -6,6 +6,7 @@ if [ -z "$1" ]; then
 fi
 
 
+CHANGE_MARK="# changed"
 CURRENT_HOST_ADDR=$1
 CASSANDRA_CONF_DIR=/etc/cassandra
 CASSANDRA_CONF=$CASSANDRA_CONF_DIR/cassandra.yaml
@@ -24,11 +25,16 @@ TOKENS['50.97.182.68']="-3074457345618258603"
 TOKENS['50.97.182.69']="3074457345618258602"
 
 
+rm -R /var/log/cassandra/*
+
+
 echo "Create directories"
 mkdir -p $CASSANDRA_COMMITLOG_DIR
+rm -R $CASSANDRA_COMMITLOG_DIR/*
 chown cassandra:cassandra $CASSANDRA_COMMITLOG_DIR
 
 mkdir -p $CASSANDRA_DATA_DIR
+rm -R $CASSANDRA_DATA_DIR/*
 chown cassandra:cassandra $CASSANDRA_DATA_DIR
 
 
@@ -36,10 +42,10 @@ echo "Replace cassandra configs"
 cp conf/cassandra-topology.properties $CASSANDRA_CONF_DIR/cassandra-topology.properties
 
 echo "Change config settings"
-sed -i "s|num_tokens: 256|# num_tokens: 256|g" $CASSANDRA_CONF
-sed -i "s|initial_token:|initial_token: ${TOKENS[$CURRENT_HOST_ADDR]}|g" $CASSANDRA_CONF
-sed -i 's|- seeds: "127.0.0.1"|- seeds: "'$SEEDS'"|g' $CASSANDRA_CONF
-sed -i "s|- /var/lib/cassandra/data|- $CASSANDRA_DATA_DIR|g" $CASSANDRA_CONF
-sed -i "s|commitlog_directory: /var/lib/cassandra/commitlog|commitlog_directory: $CASSANDRA_COMMITLOG_DIR|g" $CASSANDRA_CONF
-sed -i "s|listen_address: localhost|listen_address: ${LOCAL_ADDRESSES[$CURRENT_HOST_ADDR]}|g" $CASSANDRA_CONF
+sed -i "s|num_tokens: 256|num_tokens: $CHANGE_MARK|g" $CASSANDRA_CONF
+sed -i "s|# initial_token:|initial_token: ${TOKENS[$CURRENT_HOST_ADDR]} $CHANGE_MARK|g" $CASSANDRA_CONF
+sed -i "s|- seeds: \"127.0.0.1\"|- seeds: \"$SEEDS\" $CHANGE_MARK|g" $CASSANDRA_CONF
+sed -i "s|- /var/lib/cassandra/data|- $CASSANDRA_DATA_DIR $CHANGE_MARK|g" $CASSANDRA_CONF
+sed -i "s|commitlog_directory: /var/lib/cassandra/commitlog|commitlog_directory: $CASSANDRA_COMMITLOG_DIR $CHANGE_MARK|g" $CASSANDRA_CONF
+sed -i "s|listen_address: localhost|listen_address: ${LOCAL_ADDRESSES[$CURRENT_HOST_ADDR]} $CHANGE_MARK|g" $CASSANDRA_CONF
 

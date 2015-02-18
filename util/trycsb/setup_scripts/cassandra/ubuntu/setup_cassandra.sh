@@ -5,6 +5,6 @@ if [ -z "$1" ]; then
     exit 1
 fi
 
-#bash bin/uninstall_dse.sh
+bash bin/uninstall_dse.sh
 bash bin/install_dse.sh
 bash bin/setup_configuration.sh $1

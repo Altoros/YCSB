@@ -18,5 +18,7 @@ apt-get update
 apt-get install -y --force-yes dsc21
 apt-get install -y --force-yes opscenter
 
+service cassandra stop
+
 cp $CASSANDRA_CONF_DIR/cassandra.yaml $CASSANDRA_CONF_DIR/cassandra.orig.yaml
 cp $CASSANDRA_CONF_DIR/cassandra-topology.properties $CASSANDRA_CONF_DIR/cassandra-topology.orig.properties
