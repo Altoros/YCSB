@@ -1,5 +1,6 @@
 #!/bin/sh
 
+echo "Settings up java 1.7"
 apt-get install -y software-properties-common
 apt-add-repository -y ppa:webupd8team/java
 apt-get update
