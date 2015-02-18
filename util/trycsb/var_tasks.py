@@ -37,12 +37,14 @@ def virgin_servers_for_mongo():
         sudo('service mysql stop')
         sudo('service apache2 stop')
         sudo('service bind9 stop')
-        sudo('service mongod start')
         sudo('service counchbase-server stop')
-        sudo('service dse stop')
+        sudo('service cassandra stop')
         sudo('killall sar')
 
-        
+        sudo('service mongod stop')
+        sudo('service mongod start')
+
+
 @parallel
 @roles('servers')
 def virgin_servers_for_cassandra():
@@ -54,9 +56,9 @@ def virgin_servers_for_cassandra():
         sudo('service counchbase-server stop')
         sudo('killall sar')
 
-        sudo('service dse stop')
+        sudo('service cassandra stop')
         sudo('rm /var/log/cassandra/*.log')
-        sudo('service dse start')
+        sudo('service cassandra start')
 
 
 @parallel
@@ -69,9 +71,7 @@ def _do_stop_all():
        sudo('service mongod stop')
        sudo('service counchbase-server stop')
        sudo('killall sar')
-
-       sudo('service dse stop')
-       sudo('service dse stop')
+       sudo('service cassandra stop')
 
 
 @parallel
@@ -123,3 +123,9 @@ def reboot_clients_servers(config_path=BENCHMARK_CONF_PATH):
 def copy_system_confs():
     get('/etc/fstab')
     get('/etc/sysctl.conf')
+
+
+@task
+def copy_cassandra_confs():
+    get('/etc/cassandra/cassandra.yaml')
+
