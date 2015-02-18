@@ -7,7 +7,8 @@ fi
 
 
 CURRENT_HOST_ADDR=$1
-CASSANDRA_CONF=/etc/dse/cassandra/cassandra.yaml
+CASSANDRA_CONF_DIR=/etc/cassandra
+CASSANDRA_CONF=$CASSANDRA_CONF_DIR/cassandra.yaml
 CASSANDRA_DATA_DIR=/var/cassandra-data
 CASSANDRA_COMMITLOG_DIR=/disk1/cassandra-commitlog
 SEEDS="10.62.53.132"
@@ -22,11 +23,8 @@ TOKENS['50.97.182.67']="-9223372036854775808"
 TOKENS['50.97.182.68']="-3074457345618258603"
 TOKENS['50.97.182.69']="3074457345618258602"
 
-#echo "deb http://sergey.sintsov_altoros.com:t0VnpFpQS70Jtf0@debian.datastax.com/enterprise stable main" | sudo tee -a /etc/apt/sources.list.d/datastax.sources.list
-#curl -L https://debian.datastax.com/debian/repo_key | sudo apt-key add -
-#apt-get update
-#apt-get install dse-full
-#apt-get install opscenter
+
+bash bin/install_dse.sh
 
 
 echo "Create directories"
@@ -38,8 +36,8 @@ chown cassandra:cassandra $CASSANDRA_DATA_DIR
 
 
 echo "Replace cassandra configs"
-cp conf/cassandra.yaml /etc/dse/cassandra/cassandra.yaml
-cp conf/cassandra-topology.yaml /etc/dse/cassandra/cassandra-topology.yaml
+cp conf/cassandra.yaml $CASSANDRA_CONF_DIR/cassandra.yaml
+cp conf/cassandra-topology.properties $CASSANDRA_CONF_DIR/cassandra-topology.properties
 
 
 echo "Change config settings"
