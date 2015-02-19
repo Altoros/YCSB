@@ -14,6 +14,7 @@ from fabric.api import task
 from fabric.api import sudo
 
 from util import check_arg_not_blank
+from util import clear_remote_dirs
 from util import make_remote_dirs
 
 from config import BenchmarkConfig

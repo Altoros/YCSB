@@ -4,6 +4,7 @@
 from fabric.api import env
 from fabric.api import execute
 from fabric.api import get
+from fabric.api import hide
 from fabric.api import parallel
 from fabric.api import roles
 from fabric.api import runs_once
@@ -20,6 +21,44 @@ import threading
 
 
 BENCHMARK_CONF_PATH = 'benchmark_conf.yaml'
+
+
+class RunLogger():
+
+    def __init__(self):
+        self._info = []
+
+    def run(self, cmd):
+        self._exec(cmd)
+
+    def sudo(self, cmd):
+        self._exec(cmd, is_sudo=True)
+
+    @property
+    def commands_out(self):
+        return self._info
+
+    def _exec(self, cmd, is_sudo=False):
+        with settings(warn_only=True):
+            with hide('running', 'stdout', 'stderr'):
+                if is_sudo:
+                    self._info.append('# %s' % cmd)
+                    self._info.append(sudo(cmd))
+                else:
+                    self._info.append('$ %s' % cmd)
+                    self._info.append(run(cmd))
+
+
+class RunLogPrinter():
+
+    def print_log(self, hosts_to_log):
+        for host, log in hosts_to_log.items():
+            print '###################\n%s\n###################' % host
+            for l in log:
+                print l
+
+            print '\n'
+
 
 def _setup_fabric_env(conf):
     conn = conf.connection_parameters
@@ -64,6 +103,15 @@ def _do_reboot_machines():
        sudo('reboot')
 
 
+@parallel
+@roles('servers', 'clients')
+def _view_machine_info():
+    run_logger = RunLogger()
+    run_logger.sudo('ifconfig')
+
+    return run_logger.commands_out
+
+
 @task
 @runs_once
 def virgin_servers(config_path=BENCHMARK_CONF_PATH, db_profile=None):
@@ -81,6 +129,19 @@ def virgin_servers(config_path=BENCHMARK_CONF_PATH, db_profile=None):
 
     if db_profile:
         execute(virgin_servers_handlers[db_profile])
+
+
+@task
+@runs_once
+def gather_machine_info(config_path=BENCHMARK_CONF_PATH):
+    check_arg_not_blank(config_path, 'config_path')
+
+    conf = BenchmarkConfig(config_path)
+    _setup_fabric_env(conf)
+
+    result = execute(_view_machine_info)
+
+    RunLogPrinter().print_log(result)
 
 
 @task

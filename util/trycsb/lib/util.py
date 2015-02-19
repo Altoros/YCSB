@@ -93,3 +93,17 @@ def make_local_dirs(*dirs):
 
 def make_remote_dirs(*dirs):
     _make_dirs(False, dirs)
+
+
+def _clear_dirs(is_local=False, *dirs):
+    clear_dir = lambda (dir_name): 'rm %s' % path(dir_name, '*')
+    commands  = map(clear_dir, filter(bool, map(list, dirs)[0]))
+
+    if is_local:
+        local(cmd_conj(commands))
+    else:
+        run(cmd_conj(commands))
+
+
+def clear_remote_dirs(*dirs):
+    _clear_dirs(False, dirs)
