@@ -1,6 +1,6 @@
 #!/bin/bash
 
-bash bin/java_setup.sh
-bash bin/sar_setup.sh
-bash bin/limits_setup.sh
-bash bin/blockdev_setup.sh
+bash bin/java.sh
+bash bin/monitoring_tools.sh
+bash bin/limits.sh
+bash bin/blockdev.sh
