@@ -92,7 +92,7 @@ def _virgin_servers_for_mongo():
 
 @roles('servers')
 def _virgin_servers_for_cassandra():
-    sudo('rm /var/log/cassandra/*.log')
+    sudo('rm -f /var/log/cassandra/*.log')
     sudo('service cassandra start')
 
 
