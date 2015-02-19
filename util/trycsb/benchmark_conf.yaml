@@ -29,7 +29,7 @@ clients:
     setup_remote_dir: setup_scripts/client
 
     # List of client machines IP-addresses
-    hosts: [50.97.182.66]
+    hosts: [50.23.195.163]
 
     # Local files and directories to upload into $remote_home_dir directory
     uploads: [../../dbs/cassandra/target/cassandra-ycsb-exec-0.1.4.jar]
@@ -47,7 +47,7 @@ clients:
         # then it will be converted to string with comma separated entries.
         cassandra_a1:
             db: com.yahoo.ycsb.db.CassandraCQLClient
-            hosts: [50.97.182.67]
+            hosts: [192.155.206.162]
             table: test_table
             cassandra.keyspace: a1_ks
             cassandra.writeconsistencylevel: ONE
@@ -68,8 +68,19 @@ clients:
             # then it will be converted to string with comma separated entries.
             properties:
                 workload: com.yahoo.ycsb.workloads.CoreWorkload
+                fieldcount: 10
+                fieldlength: 100
                 threadcount: 32
-                operationcount: 30000000  # 30M
+                recordcount: 30000000  # 30M
+                insertproportion: 1.0
+
+        a1_64_threads:
+            options: [-load, -s]
+            properties:
+                workload: com.yahoo.ycsb.workloads.CoreWorkload
+                fieldcount: 10
+                fieldlength: 100
+                threadcount: 64
                 recordcount: 30000000  # 30M
                 insertproportion: 1.0
 
@@ -88,7 +99,7 @@ servers:
     setup_remote_dir: setup_scripts/server
 
     # List of servers machines IP-addresses
-    hosts: [50.97.182.67, 50.97.182.68, 50.97.182.69]
+    hosts: [192.155.206.162, 192.155.206.163, 50.23.195.162]
 
     # Server database specific settings
     db_profiles:
