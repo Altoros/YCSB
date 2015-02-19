@@ -11,11 +11,17 @@
 #
 # By default this script does nothing.
 
+# added by Mongo
+
+# disable transparent hugepage
 if test -f /sys/kernel/mm/transparent_hugepage/enabled; then
    echo never > /sys/kernel/mm/transparent_hugepage/enabled
 fi
 if test -f /sys/kernel/mm/transparent_hugepage/defrag; then
    echo never > /sys/kernel/mm/transparent_hugepage/defrag
 fi
+
+# disable zone reclaim
+echo 0 > /proc/sys/vm/zone_reclaim_mode
 
 exit 0
