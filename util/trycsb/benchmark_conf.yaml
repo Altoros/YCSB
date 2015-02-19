@@ -22,7 +22,7 @@ clients:
     # client machines environment. Scripts to execute is a bash scripts ended
     # with '*.sh'. These files executed directly on remote machines under root
     # privileges and must be located at the root of $setup_local_dir directory.
-    setup_local_dir:  setup_scripts/client/ubuntu
+    setup_local_dir:  setup_scripts/environment/centos
 
     # All content of $setup_local_dir directory will be copied to this remote
     # directory related to $benchmark_remote_home_dir
