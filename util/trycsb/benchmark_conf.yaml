@@ -84,6 +84,16 @@ clients:
                 recordcount: 30000000  # 30M
                 insertproportion: 1.0
 
+        a1_100_threads:
+            options: [-load, -s]
+            properties:
+                workload: com.yahoo.ycsb.workloads.CoreWorkload
+                fieldcount: 10
+                fieldlength: 100
+                threadcount: 100
+                recordcount: 30000000  # 30M
+                insertproportion: 1.0
+
 
 # This section described options related to servers machines from which
 # workload will be performed
