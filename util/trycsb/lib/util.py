@@ -107,3 +107,9 @@ def _clear_dirs(is_local=False, *dirs):
 
 def clear_remote_dirs(*dirs):
     _clear_dirs(False, dirs)
+
+
+def tar(src):
+    out = '%s.tar.gz' % src
+    run('tar -czf %s %s' % (out, src))
+    return out

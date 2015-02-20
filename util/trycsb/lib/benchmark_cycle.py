@@ -21,6 +21,7 @@ from util import make_local_dirs
 from util import make_remote_dirs
 from util import path
 from util import sudo_kill_11
+from util import tar
 
 from config import BenchmarkConfig
 
@@ -103,13 +104,15 @@ def _execute_workload(conf):
 @parallel
 @roles('servers')
 def _collect_benchmark_server_results(conf):
-    get(_get_stats_log_path(conf, _curr_host()), conf.benchmark_local_logs_dir)
+    target = tar(_get_stats_log_path(conf, _curr_host()))
+    get(target, conf.benchmark_local_logs_dir)
 
 
 @parallel
 @roles('clients')
 def _collect_benchmark_client_results(conf):
-    get(_get_workload_log_path(conf, _curr_host()), conf.benchmark_local_logs_dir)
+    target = tar(_get_workload_log_path(conf, _curr_host()))
+    get(target, conf.benchmark_local_logs_dir)
 
 
 @parallel
