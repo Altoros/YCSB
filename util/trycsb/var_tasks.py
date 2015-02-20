@@ -82,6 +82,8 @@ def _virgin_servers_for_all():
        sudo('service counchbase-server stop')
        sudo('killall sar')
        sudo('service cassandra stop')
+       sudo('service opscenterd stop')
+       sudo('service datastax-agent stop')
 
 
 @parallel
