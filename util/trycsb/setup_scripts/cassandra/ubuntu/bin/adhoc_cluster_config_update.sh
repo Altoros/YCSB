@@ -22,7 +22,8 @@ sed -i "s|memtable_allocation_type: heap_buffers|memtable_allocation_type: offhe
 sed -i "s|# memtable_offheap_space_in_mb: 2048|memtable_offheap_space_in_mb: 8192 $CHANGE_MARK|g" $CASSANDRA_CONF
 sed -i "s|#memtable_flush_writers: 8|memtable_flush_writers: 5 $CHANGE_MARK|g" $CASSANDRA_CONF
 sed -i "s|# native_transport_max_threads: 128|native_transport_max_threads: 128 $CHANGE_MARK|g" $CASSANDRA_CONF
-sed -i "s|#concurrent_compactors: 1|concurrent_compactors: 5 $CHANGE_MARK|g" $CASSANDRA_CONF
+sed -i "s|#concurrent_compactors: 1|concurrent_compactors: 2 $CHANGE_MARK|g" $CASSANDRA_CONF
+sed -i "s|compaction_throughput_mb_per_sec: 16|compaction_throughput_mb_per_sec: 64 $CHANGE_MARK|g" $CASSANDRA_CONF
 
 sed -i "s|#MAX_HEAP_SIZE=\"4G\"|MAX_HEAP_SIZE=\"8G\" $CHANGE_MARK|g" $CASSANDRA_ENV_CONF
 sed -i "s|#HEAP_NEWSIZE=\"800M\"|HEAP_NEWSIZE=\"1600M\" $CHANGE_MARK|g" $CASSANDRA_ENV_CONF
