@@ -19,7 +19,7 @@
     <name>YCSB MongoDB 2.13 binding</name>
 
     <properties>
-        <mongodb.version>2.13.0-rc1</mongodb.version>
+        <mongodb.version>2.13.0</mongodb.version>
     </properties>
 
     <dependencies>
