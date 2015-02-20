@@ -5,6 +5,7 @@ if [ -z "$1" ]; then
     exit 1
 fi
 
-bash bin/uninstall_dse.sh
-bash bin/install_dse.sh
-bash bin/setup_configuration.sh $1
+#bash bin/uninstall_dse.sh
+#bash bin/install_dse.sh
+#bash bin/cluster_config.sh $1
+bash bin/adhoc_cluster_config_update.sh $1

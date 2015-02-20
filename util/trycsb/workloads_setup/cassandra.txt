@@ -20,6 +20,7 @@ A1:
       );
 
       ALTER KEYSPACE a1_ks WITH DURABLE_WRITES = false;
+      ALTER TABLE a1_ks.test_table WITH compaction = { 'class' :  'LeveledCompactionStrategy' };
       SELECT * FROM system.schema_keyspaces;
 
 A2:
