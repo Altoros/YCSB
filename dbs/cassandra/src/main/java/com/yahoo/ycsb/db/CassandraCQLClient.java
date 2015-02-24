@@ -26,7 +26,6 @@ import com.yahoo.ycsb.workloads.CoreWorkload;
 
 import java.nio.ByteBuffer;
 
-import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -77,6 +76,8 @@ public class CassandraCQLClient extends DB
     public static final String READ_CONSISTENCY_LEVEL_PROPERTY_DEFAULT = "ONE";
     public static final String WRITE_CONSISTENCY_LEVEL_PROPERTY = "cassandra.writeconsistencylevel";
     public static final String WRITE_CONSISTENCY_LEVEL_PROPERTY_DEFAULT = "ONE";
+    public static final String CORE_CONNECTIONS_PER_HOST = "cassandra.core.connections.per.host";
+    public static final String MAX_CONNECTIONS_PER_HOST = "cassandra.max.connections.per.host";
 
     private static boolean _debug = false;
     private static boolean readallfields;
@@ -128,6 +129,7 @@ public class CassandraCQLClient extends DB
 
             Cluster.Builder builder = Cluster.builder()
                                              .withPort(Integer.valueOf(port))
+                                             .withPoolingOptions(buildPoolingOptions())
                                              .addContactPoints(hosts);
             if ((username != null) && !username.isEmpty())
             {
@@ -154,6 +156,22 @@ public class CassandraCQLClient extends DB
         {
             throw new DBException(e);
         }
+    }
+
+    private PoolingOptions buildPoolingOptions() {
+        Properties p = getProperties();
+        String coreConnectionsPerHostStr = p.getProperty(CORE_CONNECTIONS_PER_HOST);
+        String maxConnectionsPerHostStr = p.getProperty(MAX_CONNECTIONS_PER_HOST);
+
+        PoolingOptions po = new PoolingOptions();
+
+        if (coreConnectionsPerHostStr != null && !coreConnectionsPerHostStr.isEmpty())
+            po.setCoreConnectionsPerHost(HostDistance.REMOTE, Integer.parseInt(coreConnectionsPerHostStr));
+
+        if (maxConnectionsPerHostStr != null && !maxConnectionsPerHostStr.isEmpty())
+            po.setMaxConnectionsPerHost(HostDistance.REMOTE, Integer.parseInt(maxConnectionsPerHostStr));
+
+        return po;
     }
 
     private void buildStatements()

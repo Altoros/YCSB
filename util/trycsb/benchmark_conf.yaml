@@ -51,6 +51,9 @@ clients:
             table: test_table
             cassandra.keyspace: a1_ks
             cassandra.writeconsistencylevel: ONE
+            cassandra.core.connections.per.host: 200
+            cassandra.max.connections.per.host: 300
+
 
     # YCSB workload specific settings
     workloads:
@@ -84,16 +87,25 @@ clients:
                 recordcount: 30000000  # 30M
                 insertproportion: 1.0
 
-        a1_100_threads:
+        a1_128_threads:
             options: [-load, -s]
             properties:
                 workload: com.yahoo.ycsb.workloads.CoreWorkload
                 fieldcount: 10
                 fieldlength: 100
-                threadcount: 100
+                threadcount: 128
                 recordcount: 30000000  # 30M
                 insertproportion: 1.0
 
+        a1_156_threads:
+            options: [-load, -s]
+            properties:
+                workload: com.yahoo.ycsb.workloads.CoreWorkload
+                fieldcount: 10
+                fieldlength: 100
+                threadcount: 156
+                recordcount: 30000000  # 30M
+                insertproportion: 1.0
 
 # This section described options related to servers machines from which
 # workload will be performed
