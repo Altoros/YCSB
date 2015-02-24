@@ -88,7 +88,7 @@ def _virgin_servers_for_all():
 
 @parallel
 @roles('servers')
-def _virgin_servers_for_mongo():
+def _virgin_servers_for_mongodb():
     sudo('service mongod start')
 
 
@@ -124,7 +124,7 @@ def virgin_servers(config_path=BENCHMARK_CONF_PATH, db_profile=None):
 
     virgin_servers_handlers = {
         'cassandra': _virgin_servers_for_cassandra,
-        'mongo': _virgin_servers_for_mongo
+        'mongodb': _virgin_servers_for_mongodb
     }
 
     execute(_virgin_servers_for_all)
