@@ -2,8 +2,9 @@
 
 echo 'Uninstalling Couchbase'
 
-service couchbase-server stop
-# sudo /etc/init.d/couchbase-server stop
+#service couchbase-server stop
 
-rm -R /opt/couchbase
-dpkg -r couchbase-server
+#rm /etc/apt/sources.list.d/couchbase.list
+#rm -R /opt/couchbase
+#apt-get remove -y --purge couchbase-server
+#apt-get remove -y --purge autoremove
