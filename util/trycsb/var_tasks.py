@@ -84,6 +84,7 @@ def _virgin_servers_for_all():
        sudo('service cassandra stop')
        sudo('service opscenterd stop')
        sudo('service datastax-agent stop')
+       sudo('echo "echo 1 > /proc/sys/vm/drop_caches" | sudo sh')
 
 
 @parallel
@@ -94,8 +95,11 @@ def _virgin_servers_for_mongo():
 
 @roles('servers')
 def _virgin_servers_for_cassandra():
+    sudo('rm -f /var/log/datastax-agent/*.log')
     sudo('rm -f /var/log/cassandra/*.log')
     sudo('service cassandra start')
+    time.sleep(3)
+    sudo('service datastax-agent start')
 
 
 @parallel
