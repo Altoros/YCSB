@@ -1,6 +1,7 @@
 #!/bin/bash
 
-echo 'Uninstalling Cassandra'
+script_name=`basename $0`
+echo "$script_name: Uninstalling Cassandra"
 
 dpkg --configure -a
 
