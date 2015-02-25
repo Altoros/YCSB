@@ -78,6 +78,7 @@ public class CassandraCQLClient extends DB
     public static final String WRITE_CONSISTENCY_LEVEL_PROPERTY_DEFAULT = "ONE";
     public static final String CORE_CONNECTIONS_PER_HOST = "cassandra.core.connections.per.host";
     public static final String MAX_CONNECTIONS_PER_HOST = "cassandra.max.connections.per.host";
+    public static final String SOCKET_READ_TIMEOUT = "cassandra.socket.read.timeout.millis";
 
     private static boolean _debug = false;
     private static boolean readallfields;
@@ -130,7 +131,9 @@ public class CassandraCQLClient extends DB
             Cluster.Builder builder = Cluster.builder()
                                              .withPort(Integer.valueOf(port))
                                              .withPoolingOptions(buildPoolingOptions())
+                                             .withSocketOptions(buildSocketOptions())
                                              .addContactPoints(hosts);
+
             if ((username != null) && !username.isEmpty())
             {
                 builder = builder.withCredentials(username, password);
@@ -143,9 +146,9 @@ public class CassandraCQLClient extends DB
             for (Host discoveredHost : metadata.getAllHosts())
             {
                 System.out.printf("Datacenter: %s; Host: %s; Rack: %s\n",
-                                  discoveredHost.getDatacenter(),
-                                  discoveredHost.getAddress(),
-                                  discoveredHost.getRack());
+                        discoveredHost.getDatacenter(),
+                        discoveredHost.getAddress(),
+                        discoveredHost.getRack());
             }
 
             session = cluster.connect(keyspace);
@@ -165,13 +168,25 @@ public class CassandraCQLClient extends DB
 
         PoolingOptions po = new PoolingOptions();
 
-        if (coreConnectionsPerHostStr != null && !coreConnectionsPerHostStr.isEmpty())
-            po.setCoreConnectionsPerHost(HostDistance.REMOTE, Integer.parseInt(coreConnectionsPerHostStr));
-
         if (maxConnectionsPerHostStr != null && !maxConnectionsPerHostStr.isEmpty())
             po.setMaxConnectionsPerHost(HostDistance.REMOTE, Integer.parseInt(maxConnectionsPerHostStr));
 
-        return po;
+        if (coreConnectionsPerHostStr != null && !coreConnectionsPerHostStr.isEmpty())
+            po.setCoreConnectionsPerHost(HostDistance.REMOTE, Integer.parseInt(coreConnectionsPerHostStr));
+
+           return po;
+    }
+
+    private SocketOptions buildSocketOptions() {
+        Properties p = getProperties();
+        String readTimeoutStr = p.getProperty(SOCKET_READ_TIMEOUT);
+
+        SocketOptions so = new SocketOptions();
+
+        if (readTimeoutStr != null && !readTimeoutStr.isEmpty())
+            so.setReadTimeoutMillis(Integer.parseInt(readTimeoutStr));
+
+        return so;
     }
 
     private void buildStatements()

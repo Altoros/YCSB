@@ -51,8 +51,9 @@ clients:
             table: test_table
             cassandra.keyspace: a1_ks
             cassandra.writeconsistencylevel: ONE
-            cassandra.core.connections.per.host: 200
-            cassandra.max.connections.per.host: 300
+            cassandra.core.connections.per.host: 300
+            cassandra.max.connections.per.host: 301
+            cassandra.socket.read.timeout.millis: 30000
 
 
     # YCSB workload specific settings

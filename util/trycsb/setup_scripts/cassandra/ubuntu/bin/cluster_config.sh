@@ -31,7 +31,7 @@ TOKENS['192.155.206.163']="-3074457345618258603"
 TOKENS['50.23.195.162']="3074457345618258602"
 
 
-rm -R /var/log/cassandra/*
+rm -fR /var/log/cassandra/*
 
 
 echo "$script_name: Create/clear $CASSANDRA_COMMITLOG_DIR"
@@ -41,7 +41,7 @@ if [ -z "$CASSANDRA_COMMITLOG_DIR" ]; then
 fi
 
 mkdir -p ${CASSANDRA_COMMITLOG_DIR}
-rm -R ${CASSANDRA_COMMITLOG_DIR}/*
+rm -fR ${CASSANDRA_COMMITLOG_DIR}/*
 chown cassandra:cassandra ${CASSANDRA_COMMITLOG_DIR}
 
 echo "$script_name: Create/clear $CASSANDRA_DATA_DIR"
@@ -51,7 +51,7 @@ if [ -z "$CASSANDRA_DATA_DIR" ]; then
 fi
 
 mkdir -p ${CASSANDRA_DATA_DIR}
-rm -R ${CASSANDRA_DATA_DIR}/*
+rm -fR ${CASSANDRA_DATA_DIR}/*
 chown cassandra:cassandra ${CASSANDRA_DATA_DIR}
 
 
@@ -71,12 +71,14 @@ sed -i "s|rpc_address: localhost|rpc_address: $CURRENT_HOST_ADDR ${CHANGE_MARK}|
 #sed -i "s|concurrent_reads: 32|concurrent_reads: 16 ${CHANGE_MARK}|g" $CASSANDRA_CONF
 sed -i "s|concurrent_writes: 32|concurrent_writes: 1024 ${CHANGE_MARK}|g" ${CASSANDRA_CONF}
 sed -i "s|memtable_allocation_type: heap_buffers|memtable_allocation_type: offheap_objects ${CHANGE_MARK}|g" ${CASSANDRA_CONF}
-sed -i "s|# memtable_offheap_space_in_mb: 2048|memtable_offheap_space_in_mb: 61200 ${CHANGE_MARK}|g" ${CASSANDRA_CONF}
-sed -i "s|#memtable_flush_writers: 8|memtable_flush_writers: 2 ${CHANGE_MARK}|g" ${CASSANDRA_CONF}
+sed -i "s|# memtable_offheap_space_in_mb: 2048|memtable_offheap_space_in_mb: 71680 ${CHANGE_MARK}|g" ${CASSANDRA_CONF}
+sed -i "s|#memtable_flush_writers: 8|memtable_flush_writers: 3 ${CHANGE_MARK}|g" ${CASSANDRA_CONF}
 sed -i "s|# native_transport_max_threads: 128|native_transport_max_threads: 1024 ${CHANGE_MARK}|g" ${CASSANDRA_CONF}
 sed -i "s|#concurrent_compactors: 1|concurrent_compactors: 2 ${CHANGE_MARK}|g" ${CASSANDRA_CONF}
 sed -i "s|compaction_throughput_mb_per_sec: 16|compaction_throughput_mb_per_sec: 256 ${CHANGE_MARK}|g" ${CASSANDRA_CONF}
-sed -i "s|# memtable_cleanup_threshold: 0.11|memtable_cleanup_threshold: 1 ${CHANGE_MARK}|g" ${CASSANDRA_CONF}
+sed -i "s|# memtable_cleanup_threshold: 0.11|memtable_cleanup_threshold: 0.35 ${CHANGE_MARK}|g" ${CASSANDRA_CONF}
+sed -i "s|write_request_timeout_in_ms: 2000|write_request_timeout_in_ms: 180000 ${CHANGE_MARK}|g" ${CASSANDRA_CONF}
+sed -i "s|read_request_timeout_in_ms: 5000|read_request_timeout_in_ms: 180000 ${CHANGE_MARK}|g" ${CASSANDRA_CONF}
 
 echo "$script_name: Change ${CASSANDRA_ENV_CONF} settings"
 sed -i "s|#MAX_HEAP_SIZE=\"4G\"|MAX_HEAP_SIZE=\"8G\" ${CHANGE_MARK}|g" ${CASSANDRA_ENV_CONF}
