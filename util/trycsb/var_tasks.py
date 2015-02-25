@@ -18,7 +18,7 @@ from lib.config import BenchmarkConfig
 
 import time
 import threading
-
+from random import randint
 
 BENCHMARK_CONF_PATH = 'benchmark_conf.yaml'
 
@@ -79,8 +79,9 @@ def _virgin_servers_for_all():
        sudo('service apache2 stop')
        sudo('service bind9 stop')
        sudo('service mongod stop')
+       sudo('killall -s 15 mongod')
        sudo('service counchbase-server stop')
-       sudo('killall sar')
+       sudo('killall -s 15 sar')
        sudo('service cassandra stop')
        sudo('service opscenterd stop')
        sudo('service datastax-agent stop')
@@ -97,6 +98,7 @@ def _virgin_servers_for_mongo():
 def _virgin_servers_for_cassandra():
     sudo('rm -f /var/log/datastax-agent/*.log')
     sudo('rm -f /var/log/cassandra/*.log')
+    time.sleep(randint(1, 10))
     sudo('service cassandra start')
     time.sleep(3)
     sudo('service datastax-agent start')
