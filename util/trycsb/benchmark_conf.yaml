@@ -32,10 +32,10 @@ clients:
     hosts: [50.23.195.163]
 
     # Local files and directories to upload into $remote_home_dir directory
-    uploads: [../../dbs/cassandra/target/cassandra-ycsb-exec-0.1.4.jar]
+    uploads: [../../dbs/mongodb-2.13/target/mongodb-2.13-ycsb-exec-0.1.4.jar]
 
     # YCSB executable file path related to $remote_home_dir
-    ycsbexe: cassandra-ycsb-exec-0.1.4.jar
+    ycsbexe: mongodb-2.13-ycsb-exec-0.1.4.jar
 
     # YCSB database driver specific settings
     db_profiles:
@@ -54,7 +54,13 @@ clients:
             cassandra.core.connections.per.host: 300
             cassandra.max.connections.per.host: 301
             cassandra.socket.read.timeout.millis: 30000
-
+        mongodb:
+            db: com.yahoo.ycsb.db.MongoDbClient2_13
+            # mongos url
+            mongodb.url: 'mongodb://50.23.195.163:27017'
+            mongodb.database: ycsb
+            mongodb.writeConcern: replica_acknowledged
+            mongodb.readPreference: primaryPreferred
 
     # YCSB workload specific settings
     workloads:
@@ -169,3 +175,6 @@ servers:
             # All content of $setup_local_dir directory will be copied to this remote
             # directory related to $benchmark_remote_home_dir
             setup_remote_dir: setup_scripts/cassandra
+        mongodb:
+            setup_local_dir: setup_scripts/mongodb/ubuntu
+            setup_remote_dir: setup_scripts/mongodb
