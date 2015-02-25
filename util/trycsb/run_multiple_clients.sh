@@ -24,5 +24,5 @@ fi
 
 for i in `seq 1 $clients_count`;
 do
-    fab benchmark_run:workload_name=${workload_name}_${i},db_profile=${db_profile} > "${workload_name}_${i}.log" 2>&1
+    fab benchmark_run:workload_name=${workload_name}_${i},db_profile=${db_profile} > "${workload_name}_${i}.log" 2>&1 &
 done
