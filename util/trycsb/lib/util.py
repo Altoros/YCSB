@@ -2,7 +2,7 @@
 
    Serj Sintsov, 2015
 """
-from fabric.api import hide
+from fabric.api import cd
 from fabric.api import local
 from fabric.api import run
 from fabric.api import sudo
@@ -30,6 +30,15 @@ def not_empty(value, default=None):
 
 def path(*parts):
     return '/'.join(parts)
+
+
+def dir_name_file_name(file_path):
+    i = file_path.rfind('/')
+
+    return {
+        'dir': file_path[:i],
+        'file': file_path[i+1:]
+    }
 
 
 def get_log_file_name_formatter():
@@ -96,8 +105,9 @@ def make_remote_dirs(*dirs):
 
 
 def _clear_dirs(is_local=False, *dirs):
-    clear_dir = lambda (dir_name): 'rm %s' % path(dir_name, '*')
-    commands  = map(clear_dir, filter(bool, map(list, dirs)[0]))
+    clear_dir = lambda dir_name: 'rm -fR %s' % path(dir_name, '*')
+    filter_fn = lambda str: str is not None and not str.isspace()
+    commands  = map(clear_dir, filter(filter_fn, map(list, dirs)[0]))
 
     if is_local:
         local(cmd_conj(commands))
@@ -109,7 +119,8 @@ def clear_remote_dirs(*dirs):
     _clear_dirs(False, dirs)
 
 
-def tar(src):
-    out = '%s.tar.gz' % src
-    run('tar -czf %s %s' % (out, src))
-    return out
+def tar(root_dir, dir_file):
+    out = '%s.tar.gz' % dir_file
+    with cd(root_dir):
+        run('tar -czf %s %s' % (out, dir_file))
+    return path(root_dir, out)

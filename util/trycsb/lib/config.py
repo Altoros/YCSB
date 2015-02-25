@@ -67,7 +67,7 @@ class BenchmarkConfig():
     @property
     def benchmark_remote_logs_dir(self):
         remote_logs_dir = not_empty(self._conf['benchmark_remote_logs_dir'], self._CURRENT_DIR)
-        return path(self.benchmark_remote_home_dir, remote_logs_dir, self.workload_name, self.db_profile)
+        return path(self.benchmark_remote_home_dir, remote_logs_dir, self.db_profile)
 
     @property
     def benchmark_local_home_dir(self):
@@ -75,7 +75,7 @@ class BenchmarkConfig():
 
     @property
     def benchmark_local_logs_dir(self):
-        return path(self.benchmark_local_home_dir, self.workload_name, self.db_profile)
+        return path(self.benchmark_local_home_dir, self.db_profile)
 
     @property
     def db_profile(self):

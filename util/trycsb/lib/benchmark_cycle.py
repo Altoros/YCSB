@@ -16,6 +16,8 @@ from fabric.api import task
 
 from util import bg_sudo
 from util import check_arg_not_blank
+from util import clear_remote_dirs
+from util import dir_name_file_name
 from util import get_log_file_name_formatter
 from util import make_local_dirs
 from util import make_remote_dirs
@@ -104,14 +106,16 @@ def _execute_workload(conf):
 @parallel
 @roles('servers')
 def _collect_benchmark_server_results(conf):
-    target = tar(_get_stats_log_path(conf, _curr_host()))
+    log_path = dir_name_file_name(_get_stats_log_path(conf, _curr_host()))
+    target = tar(log_path['dir'], log_path['file'])
     get(target, conf.benchmark_local_logs_dir)
 
 
 @parallel
 @roles('clients')
 def _collect_benchmark_client_results(conf):
-    target = tar(_get_workload_log_path(conf, _curr_host()))
+    log_path = dir_name_file_name(_get_workload_log_path(conf, _curr_host()))
+    target = tar(log_path['dir'], log_path['file'])
     get(target, conf.benchmark_local_logs_dir)
 
 
@@ -121,7 +125,7 @@ def _setup_workload_environment(conf):
     make_remote_dirs(conf.benchmark_remote_logs_dir)
 
 
-def _test_cycle(conf):
+def _run_cycle(conf):
     execute(_setup_workload_environment, conf)
     start_server_stats_result = execute(_start_server_stats, conf)
     execute(_execute_workload, conf)
@@ -143,6 +147,12 @@ def _deploy_benchmark(conf):
 
 def _deploy_cycle(conf):
     execute(_deploy_benchmark, conf)
+
+
+@parallel
+@roles('clients', 'servers')
+def _drop_logs_cycle(conf):
+    clear_remote_dirs(conf.benchmark_remote_logs_dir)
 
 
 @task
@@ -178,4 +188,25 @@ def benchmark_run(config_path=_BENCHMARK_CONF_PATH, workload_name=None,
                            db_profile=db_profile)
     _setup_fabric_env(conf)
     
-    _test_cycle(conf)
+    _run_cycle(conf)
+
+
+@task
+@runs_once
+def benchmark_drop_logs(config_path=_BENCHMARK_CONF_PATH, workload_name=None,
+                        db_profile=None):
+    """Removes all logs on remote machines for specified benchmark.
+       Params:
+           config_path  : path to benchmark config if YAML format
+           workload_name: name of workload to run
+           db_profile   : name of DB profile to use in workload
+    """
+    check_arg_not_blank(config_path, 'config_path')
+    check_arg_not_blank(workload_name, 'workload_name')
+    check_arg_not_blank(db_profile, 'db_profile')
+
+    conf = BenchmarkConfig(config_path=config_path, workload_name=workload_name,
+                           db_profile=db_profile)
+    _setup_fabric_env(conf)
+
+    execute(_drop_logs_cycle, conf)
