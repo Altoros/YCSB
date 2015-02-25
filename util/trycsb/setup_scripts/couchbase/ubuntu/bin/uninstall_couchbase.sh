@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo 'Uninstalling Couchbase'
+echo "Uninstalling Couchbase"
 
 service couchbase-server stop
 

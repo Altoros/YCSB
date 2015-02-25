@@ -4,7 +4,7 @@ A1:
       field size = 100 Byte
       records count = 30_000_000
 
-      CREATE KEYSPACE a1_ks WITH REPLICATION = {'class' : 'SimpleStrategy', 'replication_factor': 1 };
+      CREATE KEYSPACE a1_ks WITH REPLICATION = {'class' : 'SimpleStrategy', 'replication_factor': 2 };
       CREATE TABLE a1_ks.test_table (
            y_id varchar primary key,
            field0 blob,
@@ -23,7 +23,3 @@ A1:
       ALTER KEYSPACE system_traces WITH DURABLE_WRITES = false;
       SELECT * FROM system.schema_keyspaces;
       ALTER KEYSPACE "OpsCenter" WITH DURABLE_WRITES = false;
-
-A2:
-
-ALTER TABLE a1_ks.test_table WITH compaction = { 'class' :  'SizeTiered' };

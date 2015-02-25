@@ -1,20 +1,48 @@
 #!/bin/bash
 
-echo 'node initialization'
-#couchbase-cli node-init -c 192.155.206.162:8091 --node-init-data-path=/tmp/data --node-init-index-path=/tmp/index -u altoros -p changeme
+if [ -z "$1" ]; then
+    echo "Username required"
+    exit 1
+fi
 
-echo 'cluster initialization'
-#couchbase-cli cluster-init -c 192.155.206.162:8091 --cluster-username=altoros --cluster-password=changeme --cluster-ramsize=1000
+if [ -z "$2" ]; then
+    echo "Password required"
+    exit 1
+fi
 
-echo 'create bucket'
-#couchbase-cli bucket-create -c 192.155.206.162:8091 --bucket=default --bucket-type=couchbase --bucket-ramsize=200 -u altoros -p changeme
+CURRENT_NODE="192.155.206.162"
+NODE1="192.155.206.163"
+NODE2="50.23.195.162"
+PORT="8091"
+USER=$1
+PASS=$2
 
-echo 'add nodes to cluster'
-#couchbase-cli server-add -c 192.155.206.162:8091 --server-add=192.155.206.163:8091 -u altoros -p changeme
-#couchbase-cli server-add -c 192.155.206.162:8091 --server-add=50.23.195.162:8091 -u altoros -p changeme
+COUCHBASE_DATA_PATH=/tmp/data
+COUCHBASE_INDEX_PATH=/tmp/index
 
-echo 'list servers in cluster'
-#couchbase-cli server-list --cluster=192.155.206.162:8091
+COUCHBASE_CLUSTER_USERNAME=${USER}
+COUCHBASE_CLUSTER_PASSWORD=${PASS}
+COUCHBASE_CLUSTER_RAMSIZE="1000"
 
-echo 'Server information'
-#couchbase-cli server-info -c 192.155.206.162:8091 -u altoros -p changeme
+COUCHBASE_BUCKET_NAME="default"
+COUCHBASE_BUCKET_TYPE="couchbase"
+COUCHBASE_BUCKET_RAMSIZE="1000"
+
+echo "node initialization"
+couchbase-cli node-init -c ${CURRENT_NODE}:${PORT} --node-init-data-path=${COUCHBASE_DATA_PATH} --node-init-index-path=${COUCHBASE_INDEX_PATH} -u ${USER} -p ${PASS}
+
+echo "cluster initialization"
+couchbase-cli cluster-init -c ${CURRENT_NODE}:${PORT} --cluster-username=${COUCHBASE_CLUSTER_USERNAME} --cluster-password=${COUCHBASE_CLUSTER_PASSWORD} --cluster-ramsize=${COUCHBASE_CLUSTER_RAMSIZE}
+
+echo "create bucket"
+couchbase-cli bucket-create -c ${CURRENT_NODE}:${PORT} --bucket=${COUCHBASE_BUCKET_NAME} --bucket-type=${COUCHBASE_BUCKET_TYPE} --bucket-ramsize=${COUCHBASE_BUCKET_RAMSIZE} -u ${USER} -p ${PASS}
+
+echo "add nodes to cluster"
+couchbase-cli server-add -c ${CURRENT_NODE}:${PORT} --server-add=${NODE1}:${PORT} -u ${USER} -p ${PASS}
+couchbase-cli server-add -c ${CURRENT_NODE}:${PORT} --server-add=${NODE2}:${PORT} -u ${USER} -p ${PASS}
+
+echo "list servers in cluster"
+couchbase-cli server-list -c ${CURRENT_NODE}:${PORT}
+
+echo "server information"
+couchbase-cli server-info -c ${CURRENT_NODE}:${PORT} -u ${USER} -p ${PASS}
