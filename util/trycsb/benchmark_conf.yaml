@@ -75,38 +75,69 @@ clients:
                 fieldcount: 10
                 fieldlength: 100
                 threadcount: 32
-                recordcount: 30000000  # 30M
+                recordcount: 30_000
                 insertproportion: 1.0
 
-        a1_64_threads:
+        a1_64_threads_1:
             options: [-load, -s]
             properties:
                 workload: com.yahoo.ycsb.workloads.CoreWorkload
                 fieldcount: 10
                 fieldlength: 100
                 threadcount: 64
-                recordcount: 30000000  # 30M
+                insertstart: 0
+                insertcount: 30_000
+                recordcount: 150_000_000
                 insertproportion: 1.0
 
-        a1_128_threads:
+        a1_64_threads_2:
             options: [-load, -s]
             properties:
                 workload: com.yahoo.ycsb.workloads.CoreWorkload
                 fieldcount: 10
                 fieldlength: 100
-                threadcount: 128
-                recordcount: 30000000  # 30M
+                threadcount: 64
+                insertstart:
+                insertstart: 30_000_000
+                insertcount: 60_000_000
+                recordcount: 150_000_000
                 insertproportion: 1.0
 
-        a1_156_threads:
+        a1_64_threads_3:
             options: [-load, -s]
             properties:
                 workload: com.yahoo.ycsb.workloads.CoreWorkload
                 fieldcount: 10
                 fieldlength: 100
-                threadcount: 156
-                recordcount: 30000000  # 30M
+                threadcount: 64
+                insertstart: 60_000_000
+                insertcount: 90_000_000
+                recordcount: 150_000_000
                 insertproportion: 1.0
+
+        a1_64_threads_4:
+            options: [-load, -s]
+            properties:
+                workload: com.yahoo.ycsb.workloads.CoreWorkload
+                fieldcount: 10
+                fieldlength: 100
+                insertstart: 90_000_000
+                insertcount: 120_000_000
+                recordcount: 150_000_000
+                insertproportion: 1.0
+
+        a1_64_threads_5:
+            options: [-load, -s]
+            properties:
+                workload: com.yahoo.ycsb.workloads.CoreWorkload
+                fieldcount: 10
+                fieldlength: 100
+                threadcount: 64
+                insertstart: 120_000_000
+                insertcount: 150_000_000
+                recordcount: 150_000_000
+                insertproportion: 1.0
+
 
 # This section described options related to servers machines from which
 # workload will be performed
