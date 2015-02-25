@@ -75,8 +75,8 @@ sed -i "s|# memtable_offheap_space_in_mb: 2048|memtable_offheap_space_in_mb: 716
 sed -i "s|#memtable_flush_writers: 8|memtable_flush_writers: 3 ${CHANGE_MARK}|g" ${CASSANDRA_CONF}
 sed -i "s|# native_transport_max_threads: 128|native_transport_max_threads: 1024 ${CHANGE_MARK}|g" ${CASSANDRA_CONF}
 sed -i "s|#concurrent_compactors: 1|concurrent_compactors: 2 ${CHANGE_MARK}|g" ${CASSANDRA_CONF}
-sed -i "s|compaction_throughput_mb_per_sec: 16|compaction_throughput_mb_per_sec: 256 ${CHANGE_MARK}|g" ${CASSANDRA_CONF}
-sed -i "s|# memtable_cleanup_threshold: 0.11|memtable_cleanup_threshold: 0.35 ${CHANGE_MARK}|g" ${CASSANDRA_CONF}
+sed -i "s|compaction_throughput_mb_per_sec: 16|compaction_throughput_mb_per_sec: 288 ${CHANGE_MARK}|g" ${CASSANDRA_CONF}
+sed -i "s|# memtable_cleanup_threshold: 0.11|memtable_cleanup_threshold: 0.25 ${CHANGE_MARK}|g" ${CASSANDRA_CONF}
 sed -i "s|write_request_timeout_in_ms: 2000|write_request_timeout_in_ms: 180000 ${CHANGE_MARK}|g" ${CASSANDRA_CONF}
 sed -i "s|read_request_timeout_in_ms: 5000|read_request_timeout_in_ms: 180000 ${CHANGE_MARK}|g" ${CASSANDRA_CONF}
 
