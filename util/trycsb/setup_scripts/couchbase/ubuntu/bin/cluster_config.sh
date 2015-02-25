@@ -44,5 +44,5 @@ couchbase-cli server-add -c ${CURRENT_NODE}:${PORT} --server-add=${NODE2}:${PORT
 echo "list servers in cluster"
 couchbase-cli server-list -c ${CURRENT_NODE}:${PORT}
 
-echo "erver information"
+echo "server information"
 couchbase-cli server-info -c ${CURRENT_NODE}:${PORT} -u ${USER} -p ${PASS}
