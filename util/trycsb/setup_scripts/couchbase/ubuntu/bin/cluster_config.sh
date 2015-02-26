@@ -2,33 +2,23 @@
 
 export PATH=$PATH:/opt/couchbase/bin
 
-if [ -z "$1" ]; then
-    echo "Username required"
-    exit 1
-fi
-
-if [ -z "$2" ]; then
-    echo "Password required"
-    exit 1
-fi
-
 CURRENT_NODE="192.155.206.162"
 NODE1="192.155.206.163"
 NODE2="50.23.195.162"
 PORT="8091"
-USER=$1
-PASS=$2
+USER="couchbase"
+PASS="couchbase"
 
-COUCHBASE_DATA_PATH=/tmp/data
+COUCHBASE_DATA_PATH=/disk1/data
 COUCHBASE_INDEX_PATH=/tmp/index
 
 COUCHBASE_CLUSTER_USERNAME=${USER}
 COUCHBASE_CLUSTER_PASSWORD=${PASS}
-COUCHBASE_CLUSTER_RAMSIZE="1000"
+COUCHBASE_CLUSTER_RAMSIZE="10000"
 
 COUCHBASE_BUCKET_NAME="default"
 COUCHBASE_BUCKET_TYPE="couchbase"
-COUCHBASE_BUCKET_RAMSIZE="300"
+COUCHBASE_BUCKET_RAMSIZE="7000"
 
 echo "node initialization"
 couchbase-cli node-init -c ${CURRENT_NODE}:${PORT} --node-init-data-path=${COUCHBASE_DATA_PATH} --node-init-index-path=${COUCHBASE_INDEX_PATH} -u ${USER} -p ${PASS}
