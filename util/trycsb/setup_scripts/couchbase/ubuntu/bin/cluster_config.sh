@@ -12,7 +12,8 @@ COUCHBASE_PASSWORD="couchbase"
 COUCHBASE_DATA_PATH=/opt/couchbase/var/lib/couchbase/data
 COUCHBASE_INDEX_PATH=/disk1/couchbase/index
 
-#TODO create path with $mkdir and $chown to couchbase
+mkdir -p ${COUCHBASE_DATA_PATH} ${COUCHBASE_INDEX_PATH}
+chown couchbase:couchbase ${COUCHBASE_DATA_PATH} ${COUCHBASE_INDEX_PATH}
 
 COUCHBASE_CLUSTER_RAMSIZE="1000"
 
