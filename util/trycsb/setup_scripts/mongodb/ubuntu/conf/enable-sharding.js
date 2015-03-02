@@ -1,6 +1,0 @@
-db.adminCommand({ addshard : "shard0/192.155.206.162:27000,50.23.195.162:27000"})
-db.adminCommand({ addshard : "shard1/192.155.206.162:37000,192.155.206.163:37000"})
-db.adminCommand({ addshard : "shard2/50.23.195.162:37000,192.155.206.163:27000"})
-db.adminCommand({enablesharding : "ycsb"})
-db.adminCommand({shardCollection : "ycsb.usertable", key : {_id:"hashed"}})
-sh.stopBalancer()
