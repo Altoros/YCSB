@@ -78,8 +78,9 @@ def _virgin_servers_for_all():
        sudo('service mysql stop')
        sudo('service apache2 stop')
        sudo('service bind9 stop')
-       sudo('service mongod stop')
-       sudo('killall -s 15 mongod')
+       sudo('serivce mongod-rs-config stop')
+       sudo('service mongod-rs0 stop')
+       sudo('service mongod-rs1 stop')
        sudo('service counchbase-server stop')
        sudo('killall -s 15 sar')
        sudo('service cassandra stop')
@@ -90,8 +91,11 @@ def _virgin_servers_for_all():
 
 @parallel
 @roles('servers')
-def _virgin_servers_for_mongo():
-    sudo('service mongod start')
+def _virgin_servers_for_mongodb():
+    sudo('rm -f /disk1/mongodb-logs/*.log')
+    sudo('service mongod-rs0 start')
+    sudo('service mongod-rs1 start')
+    sudo('service mongod-rs-config start')
 
 
 @roles('servers')
@@ -130,7 +134,7 @@ def virgin_servers(config_path=BENCHMARK_CONF_PATH, db_profile=None):
 
     virgin_servers_handlers = {
         'cassandra': _virgin_servers_for_cassandra,
-        'mongo': _virgin_servers_for_mongo
+        'mongodb': _virgin_servers_for_mongodb
     }
 
     execute(_virgin_servers_for_all)

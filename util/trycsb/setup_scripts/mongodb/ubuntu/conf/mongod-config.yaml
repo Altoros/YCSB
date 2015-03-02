@@ -1,0 +1,14 @@
+# YAML format is supported since MongoDB 2.6
+systemLog:
+  destination: file
+  path: "/disk1/mongodb-logs/config.log"
+  logAppend: true
+storage:
+  dbPath: "/disk1/mongodb-data/config"
+processManagement:
+  fork: true
+net:
+  bindIp:
+  port: 57000
+sharding:
+  clusterRole: "configsvr"
