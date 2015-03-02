@@ -17,7 +17,6 @@ from lib.util import check_arg_not_blank
 from lib.config import BenchmarkConfig
 
 import time
-import threading
 from random import randint
 
 BENCHMARK_CONF_PATH = 'benchmark_conf.yaml'
@@ -90,10 +89,13 @@ def _virgin_servers_for_all():
 @parallel
 @roles('servers')
 def _virgin_servers_for_mongodb():
+    sudo('blockdev --setra 32 /dev/sda6')
+    sudo('blockdev --setra 32 /dev/sdb1')
     sudo('rm -f /disk1/mongodb-logs/*.log')
     sudo('service mongod-rs0 start')
     sudo('service mongod-rs1 start')
     sudo('service mongod-rs-config start')
+
 
 @parallel
 @roles('clients')
@@ -104,12 +106,16 @@ def _virgin_clients_for_mongodb():
 
 @roles('servers')
 def _virgin_servers_for_cassandra():
+    sudo('blockdev --setra 128 /dev/sda6')
+    sudo('blockdev --setra 128 /dev/sdb1')
+    sudo('swapoff --all')
+
     sudo('rm -f /var/log/datastax-agent/*.log')
     sudo('rm -f /var/log/cassandra/*.log')
     time.sleep(randint(1, 10))
     sudo('service cassandra start')
-    time.sleep(3)
-    sudo('service datastax-agent start')
+    #time.sleep(3)
+    #sudo('service datastax-agent start')
 
 
 @parallel
