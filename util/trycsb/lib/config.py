@@ -37,7 +37,7 @@ def _to_file_paths(prefix_path, file_names):
 
 def _check_path_without_tilda(path):
     if path.startswith('~'):
-        fault('Specify path without tilda')
+        fault('Specify %s without tilda' % path)
 
 
 class BenchmarkConfig():
