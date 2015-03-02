@@ -1,48 +1,35 @@
 #!/bin/bash
 
-if [ -z "$1" ]; then
-    echo "Username required"
-    exit 1
-fi
+export PATH=$PATH:/opt/couchbase/bin
 
-if [ -z "$2" ]; then
-    echo "Password required"
-    exit 1
-fi
+COUCHBASE_CURRENT_NODE="192.155.206.162"
+COUCHBASE_NODE1="192.155.206.163"
+COUCHBASE_NODE2="50.23.195.162"
+COUCHBASE_PORT="8091"
+COUCHBASE_USER="couchbase"
+COUCHBASE_PASSWORD="couchbase"
 
-CURRENT_NODE="192.155.206.162"
-NODE1="192.155.206.163"
-NODE2="50.23.195.162"
-PORT="8091"
-USER=$1
-PASS=$2
+COUCHBASE_DATA_PATH=/opt/couchbase/var/lib/couchbase/data
+COUCHBASE_INDEX_PATH=/disk1/couchbase/index
 
-COUCHBASE_DATA_PATH=/tmp/data
-COUCHBASE_INDEX_PATH=/tmp/index
+mkdir -p ${COUCHBASE_DATA_PATH} ${COUCHBASE_INDEX_PATH}
+chown couchbase:couchbase ${COUCHBASE_DATA_PATH} ${COUCHBASE_INDEX_PATH}
 
-COUCHBASE_CLUSTER_USERNAME=${USER}
-COUCHBASE_CLUSTER_PASSWORD=${PASS}
 COUCHBASE_CLUSTER_RAMSIZE="1000"
 
 COUCHBASE_BUCKET_NAME="default"
 COUCHBASE_BUCKET_TYPE="couchbase"
-COUCHBASE_BUCKET_RAMSIZE="1000"
+COUCHBASE_BUCKET_RAMSIZE="700"
 
 echo "node initialization"
-couchbase-cli node-init -c ${CURRENT_NODE}:${PORT} --node-init-data-path=${COUCHBASE_DATA_PATH} --node-init-index-path=${COUCHBASE_INDEX_PATH} -u ${USER} -p ${PASS}
+couchbase-cli node-init -c ${COUCHBASE_CURRENT_NODE}:${COUCHBASE_PORT} --node-init-data-path=${COUCHBASE_DATA_PATH} --node-init-index-path=${COUCHBASE_INDEX_PATH} -u ${COUCHBASE_USER} -p ${COUCHBASE_PASSWORD}
 
 echo "cluster initialization"
-couchbase-cli cluster-init -c ${CURRENT_NODE}:${PORT} --cluster-username=${COUCHBASE_CLUSTER_USERNAME} --cluster-password=${COUCHBASE_CLUSTER_PASSWORD} --cluster-ramsize=${COUCHBASE_CLUSTER_RAMSIZE}
+couchbase-cli cluster-init -c ${COUCHBASE_CURRENT_NODE}:${COUCHBASE_PORT} --cluster-username=${COUCHBASE_USER} --cluster-password=${COUCHBASE_PASSWORD} --cluster-ramsize=${COUCHBASE_CLUSTER_RAMSIZE} -u ${COUCHBASE_USER} -p ${COUCHBASE_PASSWORD}
 
 echo "create bucket"
-couchbase-cli bucket-create -c ${CURRENT_NODE}:${PORT} --bucket=${COUCHBASE_BUCKET_NAME} --bucket-type=${COUCHBASE_BUCKET_TYPE} --bucket-ramsize=${COUCHBASE_BUCKET_RAMSIZE} -u ${USER} -p ${PASS}
+couchbase-cli bucket-create -c ${COUCHBASE_CURRENT_NODE}:${COUCHBASE_PORT} --bucket=${COUCHBASE_BUCKET_NAME} --bucket-type=${COUCHBASE_BUCKET_TYPE} --bucket-ramsize=${COUCHBASE_BUCKET_RAMSIZE} -u ${COUCHBASE_USER} -p ${COUCHBASE_PASSWORD}
 
 echo "add nodes to cluster"
-couchbase-cli server-add -c ${CURRENT_NODE}:${PORT} --server-add=${NODE1}:${PORT} -u ${USER} -p ${PASS}
-couchbase-cli server-add -c ${CURRENT_NODE}:${PORT} --server-add=${NODE2}:${PORT} -u ${USER} -p ${PASS}
-
-echo "list servers in cluster"
-couchbase-cli server-list -c ${CURRENT_NODE}:${PORT}
-
-echo "server information"
-couchbase-cli server-info -c ${CURRENT_NODE}:${PORT} -u ${USER} -p ${PASS}
+couchbase-cli server-add -c ${COUCHBASE_CURRENT_NODE}:${COUCHBASE_PORT} --server-add=${COUCHBASE_NODE1}:${COUCHBASE_PORT} -u ${COUCHBASE_USER} -p ${COUCHBASE_PASSWORD}
+couchbase-cli server-add -c ${COUCHBASE_CURRENT_NODE}:${COUCHBASE_PORT} --server-add=${COUCHBASE_NODE2}:${COUCHBASE_PORT} -u ${COUCHBASE_USER} -p ${COUCHBASE_PASSWORD}
