@@ -1,0 +1,19 @@
+# YAML format is supported since MongoDB 2.6
+systemLog:
+  destination: file
+  path: "/disk1/mongodb-logs/rs1.log"
+  logAppend: true
+storage:
+  journal:
+    enabled: true
+    commitIntervalMs: 100
+  dbPath: "/disk1/mongodb-data/db/rs1"
+processManagement:
+  fork: true
+net:
+  bindIp: 192.155.206.163
+  port: 27000
+sharding:
+  clusterRole: "shardsvr"
+replication:
+  replSetName: "shard2"
