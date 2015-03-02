@@ -8,3 +8,6 @@ cp conf/limits.conf /etc/security/limits.conf
 
 echo "Print sysctl -p"
 sysctl -p
+
+echo "Disable transparent huge pages"
+cp conf/rc.local /etc/rc.local
