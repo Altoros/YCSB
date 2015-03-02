@@ -61,6 +61,13 @@ clients:
             mongodb.database: ycsb
             mongodb.writeConcern: replica_acknowledged
             mongodb.readPreference: primaryPreferred
+        couchbase:
+            db: com.yahoo.ycsb.couchbase.CouchbaseClient
+            couchbase.hosts: 192.155.206.162
+            couchbase.bucket: default
+            couchbase.user: couchbase
+            couchbase.password: couchbase
+            couchbase.opTimeout: 1000
 
     # YCSB workload specific settings
     workloads:
@@ -178,3 +185,6 @@ servers:
         mongodb:
             setup_local_dir: setup_scripts/mongodb/ubuntu
             setup_remote_dir: setup_scripts/mongodb
+        couchbase:
+            setup_local_dir: setup_scripts/couchbase/ubuntu
+            setup_remote_dir: setup_scripts/couchbase
