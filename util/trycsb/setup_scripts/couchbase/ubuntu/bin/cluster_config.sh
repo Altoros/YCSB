@@ -7,12 +7,18 @@ fi
 
 export PATH=$PATH:/opt/couchbase/bin
 
-COUCHBASE_MAIN_NODE="192.155.206.162"
-COUCHBASE_CURRENT_NODE=$1
-COUCHBASE_NODE2="50.23.195.162"
+COUCHBASE_MAIN_NODE=$1
+COUCHBASE_NODE_1="192.155.206.163"
+COUCHBASE_NODE_2="50.23.195.162"
 COUCHBASE_PORT="8091"
 COUCHBASE_USER="couchbase"
 COUCHBASE_PASSWORD="couchbase"
 
-echo "add node $COUCHBASE_CURRENT_NODE to cluster"
-couchbase-cli server-add -c ${COUCHBASE_MAIN_NODE}:${COUCHBASE_PORT} --server-add=${COUCHBASE_CURRENT_NODE}:${COUCHBASE_PORT} -u ${COUCHBASE_USER} -p ${COUCHBASE_PASSWORD}
+if [ "$1" == "192.155.206.162" ]; then
+
+    echo "add nodes to cluster"
+    couchbase-cli rebalance -c ${COUCHBASE_MAIN_NODE}:${COUCHBASE_PORT} --server-add=${COUCHBASE_NODE_1}:${COUCHBASE_PORT} --server-add=${COUCHBASE_NODE_2}:${COUCHBASE_PORT} --server-add-username=${COUCHBASE_USER} --server-add-password=${COUCHBASE_PASSWORD} -u ${COUCHBASE_USER} -p ${COUCHBASE_PASSWORD}
+
+    else
+    exit 0
+fi
