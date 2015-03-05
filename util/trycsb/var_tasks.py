@@ -79,7 +79,7 @@ def _virgin_servers_for_all():
        sudo('service apache2 stop')
        sudo('service bind9 stop')
        sudo('killall -s 15 mongod')
-       sudo('service counchbase-server stop')
+       sudo('service couchbase-server stop')
        sudo('killall -s 15 sar')
        sudo('service cassandra stop')
        sudo('service opscenterd stop')
