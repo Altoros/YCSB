@@ -86,14 +86,14 @@ public class CassandraCQLClient extends DB
     private static PreparedStatement deleteStatement = null;
 
     // select and scan statements have two variants; one to select all columns, and one for selecting each individual column
-    private static PreparedStatement selectStatement = null;
-    private static Map<String, PreparedStatement> selectStatements = null;
-    private static PreparedStatement scanStatement = null;
-    private static Map<String, PreparedStatement> scanStatements = null;
+    private PreparedStatement selectStatement = null;
+    private Map<String, PreparedStatement> selectStatements = null;
+    private PreparedStatement scanStatement = null;
+    private Map<String, PreparedStatement> scanStatements = null;
 
     // YCSB always inserts a full row, but updates can be either full-row or single-column
-    private static PreparedStatement insertStatement = null;
-    private static Map<String, PreparedStatement> updateStatements = null;
+    private PreparedStatement insertStatement = null;
+    private Map<String, PreparedStatement> updateStatements = null;
 
     /**
      * Initialize any state for this DB. Called once per DB instance; there is
