@@ -1,6 +1,7 @@
 """Variable scripts. Used to start/stop/kill services and process,
    update configs from test to test
 """
+from fabric import state
 from fabric.api import env
 from fabric.api import execute
 from fabric.api import get
@@ -13,6 +14,7 @@ from fabric.api import settings
 from fabric.api import task
 
 from lib.util import check_arg_not_blank
+from lib.util import tar
 
 from lib.config import BenchmarkConfig
 
@@ -190,4 +192,10 @@ def copy_system_confs():
 @task
 def copy_cassandra_confs():
     get('/etc/cassandra/cassandra.yaml')
+
+@task
+def copy_logs():
+    #out = tar('/home/altoros/benchmarks/logs/cassandra_b2', 'b_load_128_threads-stats__%s__05-Mar-2015_12-44-41.log' % state.env['host'])
+    out = tar('/home/altoros/benchmarks/logs/cassandra_b2', 'b_load_128_threads__%s__05-Mar-2015_12-44-41.log' % state.env['host'])
+    get(out)
 
