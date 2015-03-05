@@ -150,6 +150,30 @@ clients:
                 insertcount: 150_000_000
                 recordcount: 150_000_000
                 insertproportion: 1.0
+        read_update_50_50_1:
+            options: [-s]
+            properties:
+                workload: com.yahoo.ycsb.workloads.CoreWorkload
+                recordcount: 30_000_000
+                operationcount: 30_000_000
+                threadcount: 32
+                readallfields: true
+                readproportion: 0.5
+                updateproportion: 0.5
+                scanproportion: 0
+                insertproportion: 0
+        read_update_95_5_1:
+            options: [-s]
+            properties:
+                workload: com.yahoo.ycsb.workloads.CoreWorkload
+                recordcount: 30_000_000
+                operationcount: 30_000_000
+                threadcount: 32
+                readproportion: 0.95
+                updateproportion: 0.05
+                scanproportion: 0
+                insertproportion: 0
+                requestdistribution: zipfian
 
 
 # This section described options related to servers machines from which
