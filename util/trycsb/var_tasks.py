@@ -81,7 +81,7 @@ def _virgin_servers_for_all():
        sudo('serivce mongod-rs-config stop')
        sudo('service mongod-rs0 stop')
        sudo('service mongod-rs1 stop')
-       sudo('service counchbase-server stop')
+       sudo('service couchbase-server stop')
        sudo('killall -s 15 sar')
        sudo('service cassandra stop')
        sudo('service opscenterd stop')
