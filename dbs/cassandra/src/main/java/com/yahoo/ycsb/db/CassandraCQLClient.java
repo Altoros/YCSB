@@ -26,7 +26,6 @@ import com.yahoo.ycsb.workloads.CoreWorkload;
 
 import java.nio.ByteBuffer;
 
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
@@ -57,12 +56,6 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class CassandraCQLClient extends DB
 {
-    private static Cluster cluster = null;
-    private static Session session = null;
-
-    private static ConsistencyLevel readConsistencyLevel = ConsistencyLevel.ONE;
-    private static ConsistencyLevel writeConsistencyLevel = ConsistencyLevel.ONE;
-
     public static final int OK = 0;
     public static final int ERR = -1;
 
@@ -81,19 +74,24 @@ public class CassandraCQLClient extends DB
     public static final String SOCKET_READ_TIMEOUT = "cassandra.socket.read.timeout.millis";
 
     private static boolean _debug = false;
-    private static boolean readallfields;
 
-    private static PreparedStatement deleteStatement = null;
+    private static ConsistencyLevel readConsistencyLevel = ConsistencyLevel.ONE;
+    private static ConsistencyLevel writeConsistencyLevel = ConsistencyLevel.ONE;
+
+    private static volatile Cluster cluster = null;
+    private static volatile Session session = null;
+
+    private static volatile PreparedStatement deleteStatement = null;
 
     // select and scan statements have two variants; one to select all columns, and one for selecting each individual column
-    private PreparedStatement selectStatement = null;
-    private Map<String, PreparedStatement> selectStatements = null;
-    private PreparedStatement scanStatement = null;
-    private Map<String, PreparedStatement> scanStatements = null;
+    private static volatile PreparedStatement selectStatement = null;
+    private static volatile Map<String, PreparedStatement> selectStatements = null;
+    private static volatile PreparedStatement scanStatement = null;
+    private static volatile Map<String, PreparedStatement> scanStatements = null;
 
     // YCSB always inserts a full row, but updates can be either full-row or single-column
-    private PreparedStatement insertStatement = null;
-    private Map<String, PreparedStatement> updateStatements = null;
+    private static volatile PreparedStatement insertStatement = null;
+    private static volatile Map<String, PreparedStatement> updateStatements = null;
 
     /**
      * Initialize any state for this DB. Called once per DB instance; there is
@@ -126,7 +124,6 @@ public class CassandraCQLClient extends DB
 
             readConsistencyLevel = ConsistencyLevel.valueOf(getProperties().getProperty(READ_CONSISTENCY_LEVEL_PROPERTY, READ_CONSISTENCY_LEVEL_PROPERTY_DEFAULT));
             writeConsistencyLevel = ConsistencyLevel.valueOf(getProperties().getProperty(WRITE_CONSISTENCY_LEVEL_PROPERTY, WRITE_CONSISTENCY_LEVEL_PROPERTY_DEFAULT));
-            readallfields = Boolean.parseBoolean(getProperties().getProperty(CoreWorkload.READ_ALL_FIELDS_PROPERTY, CoreWorkload.READ_ALL_FIELDS_PROPERTY_DEFAULT));
 
             Cluster.Builder builder = Cluster.builder()
                                              .withPort(Integer.valueOf(port))
@@ -153,7 +150,7 @@ public class CassandraCQLClient extends DB
 
             session = cluster.connect(keyspace);
 
-            buildStatements();
+            buildStatements(getProperties());
         }
         catch (Exception e)
         {
@@ -189,23 +186,50 @@ public class CassandraCQLClient extends DB
         return so;
     }
 
-    private void buildStatements()
+    private synchronized static void buildStatements(Properties p)
     {
-        Properties p = getProperties();
+        buildDeleteStatement(p);
+        buildInsertStatement(p);
+        buildUpdateStatements(p);
+        buildScanStatements(p);
+        buildSelectStatements(p);
+    }
+
+    private static void buildInsertStatement(Properties p)
+    {
+        if (insertStatement != null)
+            return;
+
         int fieldCount = Integer.parseInt(p.getProperty(CoreWorkload.FIELD_COUNT_PROPERTY, CoreWorkload.FIELD_COUNT_PROPERTY_DEFAULT));
         String fieldPrefix = p.getProperty(CoreWorkload.FIELD_NAME_PREFIX, CoreWorkload.FIELD_NAME_PREFIX_DEFAULT);
         String table = p.getProperty(CoreWorkload.TABLENAME_PROPERTY, CoreWorkload.TABLENAME_PROPERTY_DEFAULT);
 
-        // Insert and Update statement
         Insert is = QueryBuilder.insertInto(table);
         is.value(YCSB_KEY, QueryBuilder.bindMarker());
         for (int i = 0; i < fieldCount; i++)
             is.value(fieldPrefix + i, QueryBuilder.bindMarker());
+
         insertStatement = session.prepare(is);
         insertStatement.setConsistencyLevel(writeConsistencyLevel);
+    }
 
-        // Update statements for updateOne
-        updateStatements = new ConcurrentHashMap<String,PreparedStatement>(fieldCount);
+    private static void buildUpdateStatements(Properties p)
+    {
+        if (updateStatements != null)
+            return;
+
+        int fieldCount = Integer.parseInt(p.getProperty(CoreWorkload.FIELD_COUNT_PROPERTY, CoreWorkload.FIELD_COUNT_PROPERTY_DEFAULT));
+        String fieldPrefix = p.getProperty(CoreWorkload.FIELD_NAME_PREFIX, CoreWorkload.FIELD_NAME_PREFIX_DEFAULT);
+        String table = p.getProperty(CoreWorkload.TABLENAME_PROPERTY, CoreWorkload.TABLENAME_PROPERTY_DEFAULT);
+
+        Insert is = QueryBuilder.insertInto(table);
+        is.value(YCSB_KEY, QueryBuilder.bindMarker());
+
+        for (int i = 0; i < fieldCount; i++)
+            is.value(fieldPrefix + i, QueryBuilder.bindMarker());
+
+        updateStatements = new ConcurrentHashMap<>(fieldCount);
+
         for (int i = 0; i < fieldCount; i++)
         {
             is = QueryBuilder.insertInto(table);
@@ -216,29 +240,35 @@ public class CassandraCQLClient extends DB
             ps.setConsistencyLevel(writeConsistencyLevel);
             updateStatements.put(fieldPrefix + i, ps);
         }
+    }
 
+    private static void buildDeleteStatement(Properties p)
+    {
+        if (deleteStatement != null)
+            return;
 
-        // Delete statement
+        String table = p.getProperty(CoreWorkload.TABLENAME_PROPERTY, CoreWorkload.TABLENAME_PROPERTY_DEFAULT);
+
         deleteStatement = session.prepare(QueryBuilder.delete().from(table).where(QueryBuilder.eq(YCSB_KEY, QueryBuilder.bindMarker())));
         deleteStatement.setConsistencyLevel(writeConsistencyLevel);
+    }
 
-        if (readallfields)
+    private static void buildSelectStatements(Properties p)
+    {
+        int fieldCount = Integer.parseInt(p.getProperty(CoreWorkload.FIELD_COUNT_PROPERTY, CoreWorkload.FIELD_COUNT_PROPERTY_DEFAULT));
+        String fieldPrefix = p.getProperty(CoreWorkload.FIELD_NAME_PREFIX, CoreWorkload.FIELD_NAME_PREFIX_DEFAULT);
+        String table = p.getProperty(CoreWorkload.TABLENAME_PROPERTY, CoreWorkload.TABLENAME_PROPERTY_DEFAULT);
+
+        if (selectStatement == null)
         {
-            // Select statement
             String ss = QueryBuilder.select().all().from(table).where(QueryBuilder.eq(YCSB_KEY, QueryBuilder.bindMarker())).getQueryString();
             selectStatement = session.prepare(ss);
             selectStatement.setConsistencyLevel(readConsistencyLevel);
-
-            // Scan statement
-            String initialStmt = QueryBuilder.select().all().from(table).toString();
-            String scanStmt = getScanQueryString().replaceFirst("_", initialStmt.substring(0, initialStmt.length()-1));
-            scanStatement = session.prepare(scanStmt);
-            scanStatement.setConsistencyLevel(readConsistencyLevel);
         }
-        else
+
+        if (selectStatements == null)
         {
-            // Select statements
-            selectStatements = new ConcurrentHashMap<String,PreparedStatement>(fieldCount);
+            selectStatements = new ConcurrentHashMap<>(fieldCount);
             for (int i = 0; i < fieldCount; i++)
             {
                 Select ss = QueryBuilder.select(fieldPrefix + i).from(table).where(QueryBuilder.eq(YCSB_KEY, QueryBuilder.bindMarker())).limit(1);
@@ -246,9 +276,26 @@ public class CassandraCQLClient extends DB
                 ps.setConsistencyLevel(readConsistencyLevel);
                 selectStatements.put(fieldPrefix + i, ps);
             }
+        }
+    }
 
-            // Scan statements
-            scanStatements = new ConcurrentHashMap<String,PreparedStatement>(fieldCount);
+    private static void buildScanStatements(Properties p)
+    {
+        int fieldCount = Integer.parseInt(p.getProperty(CoreWorkload.FIELD_COUNT_PROPERTY, CoreWorkload.FIELD_COUNT_PROPERTY_DEFAULT));
+        String fieldPrefix = p.getProperty(CoreWorkload.FIELD_NAME_PREFIX, CoreWorkload.FIELD_NAME_PREFIX_DEFAULT);
+        String table = p.getProperty(CoreWorkload.TABLENAME_PROPERTY, CoreWorkload.TABLENAME_PROPERTY_DEFAULT);
+
+        if (scanStatement == null)
+        {
+            String initialStmt = QueryBuilder.select().all().from(table).toString();
+            String scanStmt = getScanQueryString().replaceFirst("_", initialStmt.substring(0, initialStmt.length()-1));
+            scanStatement = session.prepare(scanStmt);
+            scanStatement.setConsistencyLevel(readConsistencyLevel);
+        }
+
+        if (scanStatements == null)
+        {
+            scanStatements = new ConcurrentHashMap<>(fieldCount);
             for (int i = 0; i < fieldCount; i++)
             {
                 String initialStmt = QueryBuilder.select(fieldPrefix + i).from(table).toString();
@@ -260,7 +307,7 @@ public class CassandraCQLClient extends DB
         }
     }
 
-    private String getScanQueryString()
+    private static String getScanQueryString()
     {
         return String.format("_ WHERE %s >= token(%s) LIMIT %s", QueryBuilder.token(YCSB_KEY), QueryBuilder.bindMarker(), QueryBuilder.bindMarker());
     }
@@ -384,12 +431,9 @@ public class CassandraCQLClient extends DB
 
             ResultSet rs = session.execute(bs);
 
-            Iterator<Row> iter = rs.iterator();
-            while (iter.hasNext())
+            for (Row row : rs)
             {
-                Row row = iter.next();
-
-                HashMap<String, ByteIterator> tuple = new HashMap<String, ByteIterator>();
+                HashMap<String, ByteIterator> tuple = new HashMap<>();
                 for (ColumnDefinitions.Definition def : row.getColumnDefinitions())
                 {
                     ByteBuffer val = row.getBytesUnsafe(def.getName());
@@ -422,7 +466,7 @@ public class CassandraCQLClient extends DB
     @Override
     public int updateOne(String table, String key, String field, ByteIterator value)
     {
-        HashMap<String, ByteIterator> values = new HashMap<String, ByteIterator>();
+        HashMap<String, ByteIterator> values = new HashMap<>();
         values.put(field, value);
         return insert(table, key, values);
     }
