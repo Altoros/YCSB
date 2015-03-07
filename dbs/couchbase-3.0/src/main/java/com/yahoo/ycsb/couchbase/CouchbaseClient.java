@@ -22,10 +22,11 @@ import java.util.Set;
  * this client uses Couchbase Java SDK 2.0.3 and supports Couchbase Server 3.0
  */
 public class CouchbaseClient extends MemcachedCompatibleClient {
-    protected CouchbaseConfig config;
+    protected static CouchbaseConfig config;
     protected PersistTo persistTo;
     protected ReplicateTo replicateTo;
     protected Bucket defaultBucket;
+    protected Cluster cluster;
 
     protected CouchbaseConfig createMemcachedConfig() {
         return new CouchbaseConfig(getProperties());
@@ -36,6 +37,23 @@ public class CouchbaseClient extends MemcachedCompatibleClient {
         return null;
     }
 
+    public static class ClusterHolder {
+        public static final Cluster CLUSTER = CouchbaseCluster.create(config.getHosts());
+    }
+
+    public static Cluster getClusterInstance() {
+        return ClusterHolder.CLUSTER;
+    }
+
+    public static class BucketHolder {
+        public static final Bucket BUCKET = getClusterInstance().openBucket();
+    }
+
+    public static Bucket getBucketInstance() {
+        return BucketHolder.BUCKET;
+    }
+
+
     @Override
     public void init() throws DBException {
         try {
@@ -43,11 +61,13 @@ public class CouchbaseClient extends MemcachedCompatibleClient {
             persistTo = config.getPersistTo();
             replicateTo = config.getReplicateTo();
 
-            // Connect to localhost
-            Cluster cluster = CouchbaseCluster.create(config.getHosts());
+            // Connect to cluster
+//            cluster = CouchbaseCluster.create(config.getHosts());
+            cluster = getClusterInstance();
 
             // Open the default bucket
-            defaultBucket = cluster.openBucket();
+//            defaultBucket = cluster.openBucket();
+            defaultBucket = getBucketInstance();
         } catch (Exception e) {
             throw new DBException(e);
         }
