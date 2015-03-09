@@ -104,6 +104,7 @@ def _virgin_servers_for_mongodb():
 def _virgin_clients_for_mongodb():
     with settings(warn_only=True):
         sudo('rm -f /disk1/mongodb-logs/*.log')
+        sudo('killall -s 15 sar')
         sudo('killall -s 15 mongos')
 
 @roles('servers')
@@ -178,7 +179,7 @@ def reboot_clients_servers(config_path=BENCHMARK_CONF_PATH):
     check_arg_not_blank(config_path, 'config_path')
 
     conf = BenchmarkConfig(config_path)
-    setup_fabric_env(conf)
+    _setup_fabric_env(conf)
 
     execute(_do_reboot_machines)
 
@@ -199,3 +200,16 @@ def copy_logs():
     out = tar('/home/altoros/benchmarks/logs/cassandra_b2', 'b_load_128_threads__%s__05-Mar-2015_12-44-41.log' % state.env['host'])
     get(out)
 
+@task
+@runs_once
+def rm_mongodb_data(config_path=BENCHMARK_CONF_PATH):
+    conf = BenchmarkConfig(config_path)
+    _setup_fabric_env(conf)
+    execute(_do_rm_mongodb_data)
+
+
+@roles('servers')
+def _do_rm_mongodb_data():
+    sudo("rm -rf /disk1/mongodb-data/config/*")
+    sudo("rm -rf /disk1/mongodb-data/db/rs0/*")
+    sudo("rm -rf /disk1/mongodb-data/db/rs1/*")
