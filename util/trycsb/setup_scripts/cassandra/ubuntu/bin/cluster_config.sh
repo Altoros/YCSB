@@ -64,8 +64,8 @@ sed -i "s|commitlog_directory: /var/lib/cassandra/commitlog|commitlog_directory:
 sed -i "s|listen_address: localhost|listen_address: ${PUBLIC_TO_LOCAL_ADDRESSES[$CURRENT_HOST_ADDR]} ${CHANGE_MARK}|g" ${CASSANDRA_CONF}
 sed -i "s|rpc_address: localhost|rpc_address: $CURRENT_HOST_ADDR ${CHANGE_MARK}|g" ${CASSANDRA_CONF}
 
-sed -i "s|key_cache_size_in_mb:|key_cache_size_in_mb: 374 ${CHANGE_MARK}|g" ${CASSANDRA_CONF}
-sed -i "s|row_cache_size_in_mb: 0|row_cache_size_in_mb: 51200 ${CHANGE_MARK}|g" ${CASSANDRA_CONF}
+sed -i "s|key_cache_size_in_mb:|key_cache_size_in_mb: 128 ${CHANGE_MARK}|g" ${CASSANDRA_CONF}
+sed -i "s|row_cache_size_in_mb: 0|row_cache_size_in_mb: 10240 ${CHANGE_MARK}|g" ${CASSANDRA_CONF}
 sed -i "s|concurrent_reads: 32|concurrent_reads: 16 ${CHANGE_MARK}|g" ${CASSANDRA_CONF}
 sed -i "s|concurrent_writes: 32|concurrent_writes: 374 ${CHANGE_MARK}|g" ${CASSANDRA_CONF}
 sed -i "s|memtable_allocation_type: heap_buffers|memtable_allocation_type: offheap_objects ${CHANGE_MARK}|g" ${CASSANDRA_CONF}
