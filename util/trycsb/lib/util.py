@@ -68,13 +68,13 @@ def bg_sudo(src_cmd, out='/dev/null'):
     bg_cmd = 'nohup %s >%s 2>&1 &' % (src_cmd, out)
 
     sudo(bg_cmd, pty=False)
-    return pid(src_cmd)
+    return pid(src_cmd) # TODO pid avoid issues with two processes with the same cmd
 
 
-def sudo_kill_11(*pids):
+def sudo_kill_15(*pids):
     for pid in pids:
         if pid:
-            sudo('kill -11 %s' % pid)
+            sudo('kill -15 %s' % pid)
 
 
 def cmd_conj(commands):
@@ -122,5 +122,5 @@ def clear_remote_dirs(*dirs):
 def tar(root_dir, dir_file):
     out = '%s.tar.gz' % dir_file
     with cd(root_dir):
-        run('tar -czf %s %s' % (out, dir_file))
+        sudo('tar -czf %s %s' % (out, dir_file))
     return path(root_dir, out)

@@ -1,6 +1,8 @@
 """Describes full workload running cycle.
 
    Serj Sintsov, 2015
+
+   TODO there are issues with benchmark cycle when the client and server is the same machine
 """
 from fabric import state
 from fabric.api import cd
@@ -22,7 +24,7 @@ from util import get_log_file_name_formatter
 from util import make_local_dirs
 from util import make_remote_dirs
 from util import path
-from util import sudo_kill_11
+from util import sudo_kill_15
 from util import tar
 
 from config import BenchmarkConfig
@@ -55,30 +57,19 @@ def _get_stats_log_path(conf, host):
 
 
 @parallel
-@roles('servers')
-def _start_server_stats(conf):
+@roles('servers', 'clients')
+def _start_stats_monitoring(conf):
     log_path = _get_stats_log_path(conf, _curr_host())
-    cmd = 'sar -o %s 1 %s' % (log_path, 2*60*60)  # monitor stats limit is 2 hours
+    cmd = 'sar -o %s 1 %s' % (log_path, 4*60*60)  # monitor stats limit is 4 hours
 
     return bg_sudo(cmd)
 
-@parallel
-@roles('clients')
-def _start_client_stats(conf):
-    log_path = _get_stats_log_path(conf, _curr_host())
-    cmd = 'sar -o %s 1 %s' % (log_path, 2 * 60 * 60)
-
-    return bg_sudo(cmd)
 
 @parallel
-@roles('servers')
-def _stop_server_stats(host_to_pids):
-    sudo_kill_11(host_to_pids[_curr_host()])
+@roles('servers', 'clients')
+def _stop_stats_monitoring(host_to_pids):
+    sudo_kill_15(host_to_pids[_curr_host()])
 
-@parallel
-@roles('clients')
-def _stop_client_stats(host_to_pids):
-    sudo_kill_11(host_to_pids[_curr_host()])
 
 def _get_ycsb_options(conf):
     wl_params = conf.client_conf.workload_parameters
@@ -125,10 +116,11 @@ def _collect_benchmark_server_results(conf):
 @parallel
 @roles('clients')
 def _collect_benchmark_client_results(conf):
-    stats_log_path = dir_name_file_name(_get_stats_log_path(conf, _curr_host()))
     workload_log_path = dir_name_file_name(_get_workload_log_path(conf, _curr_host()))
     target = tar(workload_log_path['dir'], workload_log_path['file'])
     get(target, conf.benchmark_local_logs_dir)
+
+    stats_log_path = dir_name_file_name(_get_stats_log_path(conf, _curr_host()))
     target = tar(stats_log_path['dir'], stats_log_path['file'])
     get(target, conf.benchmark_local_logs_dir)
 
@@ -141,11 +133,9 @@ def _setup_workload_environment(conf):
 
 def _run_cycle(conf):
     execute(_setup_workload_environment, conf)
-    start_server_stats_result = execute(_start_server_stats, conf)
-    start_client_stats_result = execute(_start_client_stats, conf)
+    start_stats_result = execute(_start_stats_monitoring, conf)
     execute(_execute_workload, conf)
-    execute(_stop_server_stats, start_server_stats_result)
-    execute(_stop_client_stats, start_client_stats_result)
+    execute(_stop_stats_monitoring, start_stats_result)
 
     make_local_dirs(conf.benchmark_local_logs_dir)
     execute(_collect_benchmark_server_results, conf)
