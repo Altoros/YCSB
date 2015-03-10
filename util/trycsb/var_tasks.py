@@ -8,6 +8,7 @@ from fabric.api import get
 from fabric.api import hide
 from fabric.api import parallel
 from fabric.api import roles
+from fabric.api import run
 from fabric.api import runs_once
 from fabric.api import sudo
 from fabric.api import settings
@@ -107,17 +108,20 @@ def _virgin_clients_for_mongodb():
         sudo('killall -s 15 sar')
         sudo('killall -s 15 mongos')
 
+
 @roles('servers')
 def _virgin_servers_for_cassandra():
     sudo('blockdev --setra 128 /dev/sda6')
     sudo('blockdev --setra 128 /dev/sdb1')
     sudo('swapoff --all')
 
-    sudo('rm -f /var/log/datastax-agent/*.log')
+    #sudo('rm -f /var/log/datastax-agent/*.log')
     sudo('rm -f /var/log/cassandra/*.log')
     time.sleep(randint(1, 10))
     sudo('service cassandra start')
-    #time.sleep(3)
+    time.sleep(10)
+    run('nodetool -h %s setcachecapacity -- 374 20480 50' % state.env['host'])
+    #sudo('sed -i "s|concurrent_reads: 16 # changed|concurrent_reads: 48 # changed|g" /etc/cassandra/cassandra.yaml')
     #sudo('service datastax-agent start')
 
 
@@ -158,7 +162,8 @@ def virgin_servers(config_path=BENCHMARK_CONF_PATH, db_profile=None):
 
     if db_profile:
         execute(virgin_servers_handlers[db_profile])
-        execute(virgin_clients_handlers[db_profile])
+        if virgin_clients_handlers.get(db_profile):
+            execute(virgin_clients_handlers[db_profile])
 
 
 @task
@@ -191,14 +196,35 @@ def copy_system_confs():
 
 
 @task
-def copy_cassandra_confs():
-    get('/etc/cassandra/cassandra.yaml')
+def benchmark_copy_logs():
+    dir = '/home/altoros/benchmarks/logs/cassandra_b1'
+    log_stats = 'b_200_threads_uniform-stats__%s__10-Mar-2015_09-37-24.log'
+    log_ycsb  = 'b_200_threads_uniform__%s' \
+                '__10-Mar-2015_09-37-24.log'
+
+    with settings(warn_only=True):
+        get(tar(dir, log_stats % state.env['host']))
+        get(tar(dir, log_ycsb % state.env['host']))
+
 
 @task
-def copy_logs():
-    #out = tar('/home/altoros/benchmarks/logs/cassandra_b2', 'b_load_128_threads-stats__%s__05-Mar-2015_12-44-41.log' % state.env['host'])
-    out = tar('/home/altoros/benchmarks/logs/cassandra_b2', 'b_load_128_threads__%s__05-Mar-2015_12-44-41.log' % state.env['host'])
-    get(out)
+def cassandra_copy_logs():
+    dir = '/var/log/cassandra'
+
+    with settings(warn_only=True):
+        out = tar(dir, 'system.log')
+        get(out, state.env['host'] + '__' + out)
+
+
+@task
+def cassandra_set_cache():
+    run('nodetool -h %s setcachecapacity -- 374 30760 50' % state.env['host'])
+
+
+@task
+def cassandra_copy_confs():
+    get('/etc/cassandra/cassandra.yaml')
+
 
 @task
 @runs_once
