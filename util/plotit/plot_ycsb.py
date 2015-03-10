@@ -1,5 +1,8 @@
-"""
-
+""" Plot values you gave using parse_ycsb_log.sh tool.
+    As the result you'll get next images:
+       latency.svg
+       throughput.svg
+       operations.svg
 """
 import argparse
 import os
@@ -68,15 +71,15 @@ def plot_operations(data, time_series):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(usage=__doc__)
-    parser.add_argument("--latencies", dest="latencies", type=str, help="Time to latency data")
-    parser.add_argument("--time-step", dest="time_step", type=int, help="Time axis step", default=1)
+    parser.add_argument("--data-file", dest="data_file", type=str, help="<operations count, throughput, latency> data file")
+    parser.add_argument("--time-step", dest="time_step", type=int, help="Time step", default=1)
     args = parser.parse_args()
 
-    if not args.latencies:
+    if not args.data_file:
         sys.exit(0)
 
-    if not os.path.isfile(args.latencies):
-        print "Cann't read latencies data file"
+    if not os.path.isfile(args.data_file):
+        print "Cann't read data file"
         sys.exit(1)
 
-    plot(parse_input_data(args.latencies), args.time_step)
+    plot(parse_input_data(args.data_file), args.time_step)

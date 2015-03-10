@@ -1,3 +1,6 @@
+# Extracts tuples <operations count, throughput, latency> for each timestamp from YCSB log.
+# Saves each tuples into <prefix>_data.txt in separate line. Tuple entries separated by space.
+#
 #!/bin/bash
 
 if [ -z "$1" ]; then
