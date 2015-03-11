@@ -57,6 +57,8 @@ public class MongoDbClient2_13 extends DB {
         mongoConfig = new MongoConfig(getProperties());
         String urlParam = mongoConfig.getHosts();
 
+        System.setProperty("DEBUG.MONGO", "true");
+        System.setProperty("DB.TRACE", "true");
         try {
             String[] clients = urlParam.split(",");
             List<ServerAddress> seeds = new ArrayList<ServerAddress>();
