@@ -119,8 +119,11 @@ def clear_remote_dirs(*dirs):
     _clear_dirs(False, dirs)
 
 
-def tar(root_dir, dir_file):
-    out = '%s.tar.gz' % dir_file
-    with cd(root_dir):
-        sudo('tar -czf %s %s' % (out, dir_file))
-    return path(root_dir, out)
+def tar(src_dir, src_file, dest_file=None):
+    if not dest_file:
+        dest_file = '%s.tar.gz' % src_file
+
+    with cd(src_dir):
+        sudo('tar -czf %s %s' % (dest_file, src_file))
+
+    return path(src_dir, dest_file)
