@@ -9,7 +9,18 @@
 
 package com.yahoo.ycsb.db;
 
-import com.mongodb.*;
+import com.mongodb.MongoClient;
+import com.mongodb.WriteConcern;
+import com.mongodb.ReadPreference;
+import com.mongodb.ServerAddress;
+import com.mongodb.DBAddress;
+import com.mongodb.MongoClientOptions;
+import com.mongodb.DBCollection;
+import com.mongodb.WriteResult;
+import com.mongodb.DBObject;
+import com.mongodb.BasicDBObject;
+import com.mongodb.DBCursor;
+
 import com.yahoo.ycsb.ByteArrayByteIterator;
 import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.DB;
@@ -17,7 +28,12 @@ import com.yahoo.ycsb.DBException;
 
 import java.io.UnsupportedEncodingException;
 import java.net.UnknownHostException;
-import java.util.*;
+
+import java.util.List;
+import java.util.ArrayList;
+import java.util.Map;
+import java.util.HashMap;
+import java.util.Iterator;
 
 /**
  * MongoDB client for YCSB framework.
