@@ -120,7 +120,7 @@ def _virgin_servers_for_cassandra():
     time.sleep(randint(1, 10))
     sudo('service cassandra start')
     time.sleep(10)
-    run('nodetool -h %s setcachecapacity -- 374 20480 50' % state.env['host'])
+    run('nodetool -h %s setcachecapacity -- 128 0 50' % state.env['host'])
     #sudo('sed -i "s|concurrent_reads: 16 # changed|concurrent_reads: 48 # changed|g" /etc/cassandra/cassandra.yaml')
     #sudo('service datastax-agent start')
 
@@ -197,10 +197,9 @@ def copy_system_confs():
 
 @task
 def benchmark_copy_logs():
-    dir = '/home/altoros/benchmarks/logs/cassandra_b1'
-    log_stats = 'b_200_threads_uniform-stats__%s__10-Mar-2015_09-37-24.log'
-    log_ycsb  = 'b_200_threads_uniform__%s' \
-                '__10-Mar-2015_09-37-24.log'
+    dir = '/home/altoros/benchmarks/logs/cassandra_b3'
+    log_stats = 'b_128_threads_zipfian-stats__%s__16-Mar-2015_11-47-59.log'
+    log_ycsb  = 'b_128_threads_zipfian__%s__16-Mar-2015_11-47-59.log'
 
     with settings(warn_only=True):
         get(tar(dir, log_stats % state.env['host']))
@@ -208,17 +207,35 @@ def benchmark_copy_logs():
 
 
 @task
-def cassandra_copy_logs():
+def cassandra_copy_logs(workload_name):
     dir = '/var/log/cassandra'
+    log = 'system.log'
+    table = 'a3_ks.test_table'
+    workload = workload_name
+    prefix = '%s__%s' % (workload, state.env['host'])
 
     with settings(warn_only=True):
-        out = tar(dir, 'system.log')
-        get(out, state.env['host'] + '__' + out)
+        cfstats_out = '%s_cfstats.txt' % prefix
+        run('nodetool cfstats %s > %s' % (table, cfstats_out))
+        get(cfstats_out)
+
+        tpstats_out = '%s_tpstats.txt' % prefix
+        run('nodetool tpstats > %s' % tpstats_out)
+        get(tpstats_out)
+
+        info_out = '%s_info.txt' % prefix
+        run('nodetool info > %s' % info_out)
+        get(info_out)
+
+        system_out = tar(dir, log,  '%s__%s.tar' % (prefix, log))
+        get(system_out)
 
 
 @task
 def cassandra_set_cache():
-    run('nodetool -h %s setcachecapacity -- 374 30760 50' % state.env['host'])
+    #sudo('sed -i "s|native_transport_max_threads: 1024 # changed|native_transport_max_threads: 99000000 # changed|g" /etc/cassandra/cassandra.yaml')
+    #run('nodetool -h %s setcachecapacity -- 256 40960 50' % state.env['host'])
+    run('nodetool -h %s setcachecapacity -- 128 512 50' % state.env['host'])
 
 
 @task
