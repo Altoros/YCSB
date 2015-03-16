@@ -64,24 +64,25 @@ sed -i "s|commitlog_directory: /var/lib/cassandra/commitlog|commitlog_directory:
 sed -i "s|listen_address: localhost|listen_address: ${PUBLIC_TO_LOCAL_ADDRESSES[$CURRENT_HOST_ADDR]} ${CHANGE_MARK}|g" ${CASSANDRA_CONF}
 sed -i "s|rpc_address: localhost|rpc_address: $CURRENT_HOST_ADDR ${CHANGE_MARK}|g" ${CASSANDRA_CONF}
 
-sed -i "s|key_cache_size_in_mb:|key_cache_size_in_mb: 128 ${CHANGE_MARK}|g" ${CASSANDRA_CONF}
-sed -i "s|row_cache_size_in_mb: 0|row_cache_size_in_mb: 10240 ${CHANGE_MARK}|g" ${CASSANDRA_CONF}
+#sed -i "s|key_cache_size_in_mb:|key_cache_size_in_mb: 128 ${CHANGE_MARK}|g" ${CASSANDRA_CONF}
+#sed -i "s|row_cache_size_in_mb: 0|row_cache_size_in_mb: 10240 ${CHANGE_MARK}|g" ${CASSANDRA_CONF}
 sed -i "s|concurrent_reads: 32|concurrent_reads: 16 ${CHANGE_MARK}|g" ${CASSANDRA_CONF}
-sed -i "s|concurrent_writes: 32|concurrent_writes: 374 ${CHANGE_MARK}|g" ${CASSANDRA_CONF}
+sed -i "s|concurrent_writes: 32|concurrent_writes: 512 ${CHANGE_MARK}|g" ${CASSANDRA_CONF}
 sed -i "s|memtable_allocation_type: heap_buffers|memtable_allocation_type: offheap_objects ${CHANGE_MARK}|g" ${CASSANDRA_CONF}
 sed -i "s|# memtable_heap_space_in_mb: 2048|memtable_heap_space_in_mb: 2048 ${CHANGE_MARK}|g" ${CASSANDRA_CONF}
-sed -i "s|# memtable_offheap_space_in_mb: 2048|memtable_offheap_space_in_mb: 30720 ${CHANGE_MARK}|g" ${CASSANDRA_CONF}
+sed -i "s|# memtable_offheap_space_in_mb: 2048|memtable_offheap_space_in_mb: 10240 ${CHANGE_MARK}|g" ${CASSANDRA_CONF}
 sed -i "s|#memtable_flush_writers: 8|memtable_flush_writers: 4 ${CHANGE_MARK}|g" ${CASSANDRA_CONF}
-sed -i "s|# native_transport_max_threads: 128|native_transport_max_threads: 1024 ${CHANGE_MARK}|g" ${CASSANDRA_CONF}
+sed -i "s|# native_transport_max_threads: 128|native_transport_max_threads: 99000000 ${CHANGE_MARK}|g" ${CASSANDRA_CONF}
 sed -i "s|#concurrent_compactors: 1|concurrent_compactors: 2 ${CHANGE_MARK}|g" ${CASSANDRA_CONF}
 sed -i "s|compaction_throughput_mb_per_sec: 16|compaction_throughput_mb_per_sec: 64 ${CHANGE_MARK}|g" ${CASSANDRA_CONF}
-sed -i "s|# memtable_cleanup_threshold: 0.11|memtable_cleanup_threshold: 0.25 ${CHANGE_MARK}|g" ${CASSANDRA_CONF}
+sed -i "s|# memtable_cleanup_threshold: 0.11|memtable_cleanup_threshold: 0.24 ${CHANGE_MARK}|g" ${CASSANDRA_CONF}
 sed -i "s|write_request_timeout_in_ms: 2000|write_request_timeout_in_ms: 180000 ${CHANGE_MARK}|g" ${CASSANDRA_CONF}
 sed -i "s|read_request_timeout_in_ms: 5000|read_request_timeout_in_ms: 180000 ${CHANGE_MARK}|g" ${CASSANDRA_CONF}
-#sed -i "s|# commitlog_sync: batch|commitlog_sync: batch ${CHANGE_MARK}|g" ${CASSANDRA_CONF}
-#sed -i "s|# commitlog_sync_batch_window_in_ms: 50|commitlog_sync_batch_window_in_ms: 1 ${CHANGE_MARK}|g" ${CASSANDRA_CONF}
-#sed -i "s|commitlog_sync: periodic|#commitlog_sync: periodic ${CHANGE_MARK}|g" ${CASSANDRA_CONF}
-#sed -i "s|commitlog_sync_period_in_ms: 10000|#commitlog_sync_period_in_ms: 10000 ${CHANGE_MARK}|g" ${CASSANDRA_CONF}
+
+sed -i "s|# commitlog_sync: batch|commitlog_sync: batch ${CHANGE_MARK}|g" ${CASSANDRA_CONF}
+sed -i "s|# commitlog_sync_batch_window_in_ms: 50|commitlog_sync_batch_window_in_ms: 1 ${CHANGE_MARK}|g" ${CASSANDRA_CONF}
+sed -i "s|commitlog_sync: periodic|#commitlog_sync: periodic ${CHANGE_MARK}|g" ${CASSANDRA_CONF}
+sed -i "s|commitlog_sync_period_in_ms: 10000|#commitlog_sync_period_in_ms: 10000 ${CHANGE_MARK}|g" ${CASSANDRA_CONF}
 
 echo "$script_name: Change ${CASSANDRA_ENV_CONF} settings"
 sed -i "s|#MAX_HEAP_SIZE=\"4G\"|MAX_HEAP_SIZE=\"8G\" ${CHANGE_MARK}|g" ${CASSANDRA_ENV_CONF}

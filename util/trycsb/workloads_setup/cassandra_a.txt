@@ -1,10 +1,5 @@
 ==========================================================================================================
 A1:
-      write consistency lvl = ONE;
-      durable = false
-      record fields = 10
-      field size = 100 Byte
-      records count = 180_000_000
 
       CREATE KEYSPACE a1_ks WITH REPLICATION = {'class' : 'SimpleStrategy', 'replication_factor': 2 };
       CREATE TABLE a1_ks.test_table (
@@ -24,64 +19,10 @@ A1:
       ALTER KEYSPACE a1_ks WITH DURABLE_WRITES = false;
       ALTER KEYSPACE system_traces WITH DURABLE_WRITES = false;
       SELECT * FROM system.schema_keyspaces;
-      ALTER KEYSPACE "OpsCenter" WITH DURABLE_WRITES = false;
-
-
-      Result:
-      Datacenter: datacenter1
-      ==========
-      Address          Rack        Status State   Load            Owns                Token
-                                                                                      3074457345618258602
-      192.155.206.162  rack1       Up     Normal  133.62 GB       ?                   -9223372036854775808
-      192.155.206.163  rack1       Up     Normal  133.85 GB       ?                   -3074457345618258603
-      50.23.195.162    rack1       Up     Normal  131.39 GB       ?                   3074457345618258602
-
-altoros@tugc1:~$ nodetool cfstats a1_ks.test_table
-Keyspace: a1_ks
-	Read Count: 0
-	Read Latency: NaN ms.
-	Write Count: 126656310
-	Write Latency: 0.7422636771827633 ms.
-	Pending Flushes: 0
-		Table: test_table
-		SSTable count: 99
-		Space used (live): 143469357602
-		Space used (total): 143469357602
-		Space used by snapshots (total): 0
-		Off heap memory used (total): 1253169077
-		SSTable Compression Ratio: 0.8643184961016939
-		Number of keys (estimate): 125838047
-		Memtable cell count: 9000893
-		Memtable data size: 966368603
-		Memtable off heap memory used: 1052286218
-		Memtable switch count: 108
-		Local read count: 0
-		Local read latency: NaN ms
-		Local write count: 126656310
-		Local write latency: 0.743 ms
-		Pending flushes: 0
-		Bloom filter false positives: 0
-		Bloom filter false ratio: 0.00000
-		Bloom filter space used: 157122384
-		Bloom filter off heap memory used: 157121592
-		Index summary off heap memory used: 24000155
-		Compression metadata off heap memory used: 19761112
-		Compacted partition minimum bytes: 1110
-		Compacted partition maximum bytes: 1331
-		Compacted partition mean bytes: 1331
-		Average live cells per slice (last five minutes): 0.0
-		Maximum live cells per slice (last five minutes): 0.0
-		Average tombstones per slice (last five minutes): 0.0
-		Maximum tombstones per slice (last five minutes): 0.0
 
 
 ==========================================================================================================
 A2:
-      write consistency lvl = TWO;
-      durable = false
-      record fields = 10
-      field size = 100 Byte
-      records count = 190_000_000
 
       CREATE KEYSPACE a2_ks WITH REPLICATION = {'class' : 'SimpleStrategy', 'replication_factor': 2 };
       CREATE TABLE a2_ks.test_table (
@@ -101,16 +42,10 @@ A2:
       ALTER KEYSPACE a2_ks WITH DURABLE_WRITES = false;
       ALTER KEYSPACE system_traces WITH DURABLE_WRITES = false;
       SELECT * FROM system.schema_keyspaces;
-      ALTER KEYSPACE "OpsCenter" WITH DURABLE_WRITES = false;
 
 
 ==========================================================================================================
 A3:
-      write consistency lvl = TWO;
-      durable = true
-      record fields = 10
-      field size = 100 Byte
-      records count = 190_000_000
 
       CREATE KEYSPACE a3_ks WITH REPLICATION = {'class' : 'SimpleStrategy', 'replication_factor': 2 };
       CREATE TABLE a3_ks.test_table (
@@ -129,51 +64,3 @@ A3:
 
       ALTER KEYSPACE system_traces WITH DURABLE_WRITES = false;
       SELECT * FROM system.schema_keyspaces;
-      ALTER KEYSPACE "OpsCenter" WITH DURABLE_WRITES = false;
-
-
-Datacenter: datacenter1
-==========
-Address          Rack        Status State   Load            Owns                Token
-                                                                                3074457345618258602
-192.155.206.162  rack1       Up     Normal  126.64 GB       ?                   -9223372036854775808
-192.155.206.163  rack1       Up     Normal  126.56 GB       ?                   -3074457345618258603
-50.23.195.162    rack1       Up     Normal  127.53 GB       ?                   3074457345618258602
-
-
-Keyspace: a3_ks
-	Read Count: 0
-	Read Latency: NaN ms.
-	Write Count: 120013943
-	Write Latency: 0.028857416508680164 ms.
-	Pending Flushes: 0
-		Table: test_table
-		SSTable count: 9
-		Space used (live): 136931516827
-		Space used (total): 136931516827
-		Space used by snapshots (total): 0
-		Off heap memory used (total): 264342017
-		SSTable Compression Ratio: 0.8653740954271975
-		Number of keys (estimate): 119956664
-		Memtable cell count: 630069
-		Memtable data size: 67646499
-		Memtable off heap memory used: 73660794
-		Memtable switch count: 103
-		Local read count: 0
-		Local read latency: NaN ms
-		Local write count: 120013943
-		Local write latency: 0.029 ms
-		Pending flushes: 0
-		Bloom filter false positives: 0
-		Bloom filter false ratio: 0.00000
-		Bloom filter space used: 148994256
-		Bloom filter off heap memory used: 148994184
-		Index summary off heap memory used: 22850311
-		Compression metadata off heap memory used: 18836728
-		Compacted partition minimum bytes: 1110
-		Compacted partition maximum bytes: 1331
-		Compacted partition mean bytes: 1331
-		Average live cells per slice (last five minutes): 0.0
-		Maximum live cells per slice (last five minutes): 0.0
-		Average tombstones per slice (last five minutes): 0.0
-		Maximum tombstones per slice (last five minutes): 0.0

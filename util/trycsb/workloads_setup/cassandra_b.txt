@@ -1,9 +1,4 @@
-A1:
-      write consistency lvl = ONE;
-      durable = false
-      record fields = 10
-      field size = 100 Byte
-      records count = 190_000_000
+B1:
 
       CREATE KEYSPACE b1_ks WITH REPLICATION = {'class' : 'SimpleStrategy', 'replication_factor': 2 };
       CREATE TABLE b1_ks.test_table (
@@ -21,19 +16,13 @@ A1:
       );
 
       ALTER KEYSPACE b1_ks WITH DURABLE_WRITES = false;
-      ALTER TABLE b1_ks.test_table WITH caching = '{"keys":"ALL", "rows_per_partition":"ALL"}';
       ALTER KEYSPACE system_traces WITH DURABLE_WRITES = false;
       SELECT * FROM system.schema_keyspaces;
-      ALTER KEYSPACE "OpsCenter" WITH DURABLE_WRITES = false;
+      ALTER TABLE b1_ks.test_table WITH caching = '{"keys":"ALL", "rows_per_partition":"ALL"}';
 
 
 ===============================================================================================================
-A2:
-      write consistency lvl = TWO;
-      durable = false
-      record fields = 10
-      field size = 100 Byte
-      records count = 190_000_000
+B2:
 
       CREATE KEYSPACE b2_ks WITH REPLICATION = {'class' : 'SimpleStrategy', 'replication_factor': 2 };
       CREATE TABLE b2_ks.test_table (
@@ -54,4 +43,25 @@ A2:
       ALTER TABLE b2_ks.test_table WITH caching = '{"keys":"ALL", "rows_per_partition":"ALL"}';
       ALTER KEYSPACE system_traces WITH DURABLE_WRITES = false;
       SELECT * FROM system.schema_keyspaces;
-      ALTER KEYSPACE "OpsCenter" WITH DURABLE_WRITES = false;
+
+===============================================================================================================
+B3:
+
+      CREATE KEYSPACE b3_ks WITH REPLICATION = {'class' : 'SimpleStrategy', 'replication_factor': 2 };
+      CREATE TABLE b3_ks.test_table (
+           y_id varchar primary key,
+           field0 blob,
+           field1 blob,
+           field2 blob,
+           field3 blob,
+           field4 blob,
+           field5 blob,
+           field6 blob,
+           field7 blob,
+           field8 blob,
+           field9 blob
+      );
+
+      ALTER TABLE b3_ks.test_table WITH caching = '{"keys":"ALL", "rows_per_partition":"ALL"}';
+      ALTER KEYSPACE system_traces WITH DURABLE_WRITES = false;
+      SELECT * FROM system.schema_keyspaces;
