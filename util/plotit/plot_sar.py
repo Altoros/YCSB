@@ -20,97 +20,104 @@ def join_proc(proc):
         proc.join()
 
 
-def create_metrics_checkboxes(lines, metrics_names):
-    ax = plt.gca()
-    check = CheckButtons(ax, metrics_names, [True] * len(metrics_names))
+def get_stats(stats_src, stats_names):
+    stats = {}
 
-    metric_to_line = dict(zip(metrics_names, lines))
-
-    def show_hide_line(metric):
-        line = metric_to_line[metric]
-        line.set_visible(not line.get_visible())
-        plt.draw()
-
-    check.on_clicked(show_hide_line)
-
-
-def get_metrics(metrics_src, metrics_names):
-    metrics = {}
-
-    with open(metrics_src) as f:
+    with open(stats_src) as f:
         data = f.readlines()
 
         names = data[0].strip().split(';')
         for name in names:
-            metrics[name] = []
+            stats[name] = []
 
         for line in data[1:]:
             line_points = line.split(';')
-            [metrics[x].append(y) for (x, y) in zip(names, line_points)]
+            [stats[x].append(y) for (x, y) in zip(names, line_points)]
 
-    return {key: metrics[key] for key in metrics_names}
-
-
-def plot_subsystem(filename, susbystem_sar_arg, metrics_to_plot, tmp_metrics_file_name):
-    metrics_out = '%s_metrics.tmp' % tmp_metrics_file_name
-    os.system('sadf -d %s -- %s > %s' % (filename, susbystem_sar_arg, metrics_out))
-
-    metrics = get_metrics(metrics_out, metrics_to_plot)
-    time = range( len(metrics[metrics.keys()[0]]) )
-
-    lines = []
-    for key in metrics.keys():
-        line, = plt.plot(time, metrics[key], label=key, linewidth=1)
-        lines.append(line)
-
-    return lines
+    return {key: stats[key] for key in stats_names}
 
 
-def plot_cpu_metrics(params):
-    fig = plt.figure()
-    fig.canvas.set_window_title('CPU activity (all cores)')
+def plot_any_system_stats(src_sar_log_path, sar_system_flag,
+                          stats_names, tmp_stats_file_name, plot_title):
+    stats_out = '%s_stats.tmp' % tmp_stats_file_name
+    os.system('sadf -d %s -- %s > %s' % (src_sar_log_path, sar_system_flag, stats_out))
 
-    metrics_names = ['%user', '%nice', '%system', '%iowait', '%steal']
-    lines = plot_subsystem(params.sar_log, ' ', metrics_names, 'cpu_metrics')
+    stats = get_stats(stats_out, stats_names)
+    time = range( len(stats[stats.keys()[0]]) )
 
-    #create_metrics_checkboxes(lines, metrics_names)
-    plt.legend()
-    plt.show()
+    def get_show_hide_fn(stats_lines):
+        def fn(checkbox_label):
+            line = stats_lines[checkbox_label]
+            line.set_visible(not line.get_visible())
+            plt.draw()
+
+        return fn
+
+    def do_plot():
+        fig, ax = plt.subplots()
+        fig.canvas.set_window_title(plot_title)
+        plt.xlabel('time (sec)')
+
+        stats_lines = {}
+        for key in stats.keys():
+            l, = ax.plot(time, stats[key], label=key, lw=1)
+            stats_lines[key] = l
+
+        rax = plt.axes([0.01, 0.8, 0.1, 0.1])
+        check = CheckButtons(rax, stats_names, [True] * len(stats_names))
+        check.on_clicked(get_show_hide_fn(stats_lines))
+
+        ax.legend()
+        plt.subplots_adjust(left=0.2)
+        plt.show()
+
+    do_plot()
 
 
-def plot_ram_metrics(params):
-    fig = plt.figure()
-    fig.canvas.set_window_title('Memory activity')
-
-    metrics_names = ['kbmemfree', 'kbmemused', '%memused', 'kbbuffers', 'kbcached',
-                     'kbcommit', '%commit', 'kbactive', 'kbinact', 'kbdirty']
-    lines = plot_subsystem(params.sar_log, '-r', metrics_names, 'ram_metrics')
-
-    #create_metrics_checkboxes(lines, metrics_names)
-    plt.legend()
-    plt.show()
+def plot_cpu_stats(params):
+    stats_names = ['%user', '%nice', '%system', '%iowait']
+    plot_any_system_stats(params.sar_log, '-u', stats_names, 'cpu_stats', 'CPU activity (all cores)')
 
 
-def plot_disk_metrics(params):
-    fig = plt.figure()
-    fig.canvas.set_window_title('Disks activity')
-
-    metrics_names = ['tps', 'rtps', 'wtps', 'bread/s', 'bwrtn/s']
-    lines = plot_subsystem(params.sar_log, '-b', metrics_names, 'dsk_metrics')
-
-    #create_metrics_checkboxes(lines, metrics_names)
-    plt.legend()
-    plt.show()
+def plot_ram_stats_in_kb(params):
+    stats_names = ['kbmemfree', 'kbmemused', 'kbbuffers', 'kbcached', 'kbcommit', 'kbactive', 'kbinact', 'kbdirty']
+    plot_any_system_stats(params.sar_log, '-r', stats_names, 'ram_kb_stats', 'Memory activity (kilobytes)')
 
 
-def plot_metrics(params):
-    cpu_proc = fork_plot(plot_cpu_metrics, (params, ))
-    ram_proc = fork_plot(plot_ram_metrics, (params, ))
-    dsk_proc = fork_plot(plot_disk_metrics, (params, ))
+def plot_ram_stats_in_percents(params):
+    stats_names = ['%memused', '%commit']
+    plot_any_system_stats(params.sar_log, '-r', stats_names, 'ram_percents_stats', 'Memory activity (percents)')
+
+
+def plot_disk_stats(params):
+    stats_names = ['tps', 'rtps', 'wtps', 'bread/s', 'bwrtn/s']
+    plot_any_system_stats(params.sar_log, '-d -p', stats_names, 'dsk_stats', 'Disks activity')
+
+
+def plot_queue_stats(params):
+    stats_names = ['runq-sz', 'plist-sz', 'blocked']
+    plot_any_system_stats(params.sar_log, '-q', stats_names, 'queue_stats', 'Queue activity')
+
+
+def plot_network_stats(params):
+    stats_names = ['rxkB/s', 'txkB/s', '%ifutil']
+    plot_any_system_stats(params.sar_log, '-n DEV', stats_names, 'network_stats', 'Network activity')
+
+
+def plot_stats(params):
+    cpu_proc  = fork_plot(plot_cpu_stats, (params, ))
+    ram_proc0 = fork_plot(plot_ram_stats_in_kb, (params, ))
+    ram_proc1 = fork_plot(plot_ram_stats_in_percents, (params, ))
+    dsk_proc  = fork_plot(plot_disk_stats, (params, ))
+    queue_proc = fork_plot(plot_queue_stats, (params, ))
+    network_proc = fork_plot(plot_network_stats, (params, ))
 
     join_proc(cpu_proc)
-    join_proc(ram_proc)
+    join_proc(ram_proc0)
+    join_proc(ram_proc1)
     join_proc(dsk_proc)
+    join_proc(queue_proc)
+    join_proc(network_proc)
 
     return 0
 
@@ -120,6 +127,6 @@ if __name__ == '__main__':
     parser.add_argument('--sar_log', type=str, required=True, help='SAR log filename')
     args = parser.parse_args()
 
-    return_code = plot_metrics(args)
+    return_code = plot_stats(args)
     sys.exit(return_code)
 
