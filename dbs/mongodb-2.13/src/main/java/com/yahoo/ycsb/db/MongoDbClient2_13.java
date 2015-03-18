@@ -47,64 +47,69 @@ import java.util.Iterator;
  */
 public class MongoDbClient2_13 extends DB {
 
-    protected MongoConfig mongoConfig;
+    MongoConfig mongoConfig;
 
     /** A singleton Mongo instance. */
-    private MongoClient mongoClient;
+    private static MongoClient mongoClient;
 
     /** The default write concern for the test. */
-    private WriteConcern writeConcern;
+    private static WriteConcern writeConcern;
 
     /** The default read preference for the test */
-    private ReadPreference readPreference;
+    private static ReadPreference readPreference;
 
     /** The database to access. */
-    private com.mongodb.DB db;
+    private static com.mongodb.DB db;
 
     /**
      * Initialize any state for this DB.
-     * Called once per DB instance; there is one DB instance per client thread.
+     * Called once per DB instance; there is one DB instance per client JVM.
      */
     @Override
     public void init() throws DBException {
         if (mongoClient != null) {
             return;
         }
-        mongoConfig = new MongoConfig(getProperties());
-        String urlParam = mongoConfig.getHosts();
-
-        System.setProperty("DEBUG.MONGO", "true");
-        System.setProperty("DB.TRACE", "true");
-        try {
-            String[] clients = urlParam.split(",");
-            List<ServerAddress> seeds = new ArrayList<ServerAddress>();
-            for (String ob : clients) {
-                String url = ob;
-                if (url.startsWith("mongodb://")) {
-                    url = url.substring(10);
-                }
-                url += "/" + mongoConfig.getDatabase();
-                try {
-                    seeds.add(new DBAddress(url));
-                } catch (UnknownHostException e) {
-                    System.out.println(e);
-                }
+        synchronized (MongoDbClient2_13.class) {
+            if (mongoClient != null) {
+                return;
             }
-            writeConcern = mongoConfig.getWriteConcern();
-            readPreference = mongoConfig.getReadPreference();
+            mongoConfig = new MongoConfig(getProperties());
+            String urlParam = mongoConfig.getHosts();
 
-            MongoClientOptions options = MongoClientOptions.builder()
-                    .writeConcern(writeConcern)
-                    .readPreference(readPreference)
-                    .connectionsPerHost(mongoConfig.getThreadCount())
-                    .cursorFinalizerEnabled(false).build();
-            mongoClient = new MongoClient(seeds, options);
+            System.setProperty("DEBUG.MONGO", "true");
+            System.setProperty("DB.TRACE", "false");
+            try {
+                String[] clients = urlParam.split(",");
+                List<ServerAddress> seeds = new ArrayList<ServerAddress>();
+                for (String ob : clients) {
+                    String url = ob;
+                    if (url.startsWith("mongodb://")) {
+                        url = url.substring(10);
+                    }
+                    url += "/" + mongoConfig.getDatabase();
+                    try {
+                        seeds.add(new DBAddress(url));
+                    } catch (UnknownHostException e) {
+                        System.out.println(e);
+                    }
+                }
+                writeConcern = mongoConfig.getWriteConcern();
+                readPreference = mongoConfig.getReadPreference();
 
-            db = mongoClient.getDB(mongoConfig.getDatabase());
+                MongoClientOptions options = MongoClientOptions.builder()
+                        .writeConcern(writeConcern)
+                        .readPreference(readPreference)
+                        .connectionsPerHost(mongoConfig.getThreadCount())
+                        .cursorFinalizerEnabled(false).build();
+                mongoClient = new MongoClient(seeds, options);
 
-        } catch (Exception e1) {
-            System.err.println("Could not initialize Mongo Client: " + e1.toString());
-            e1.printStackTrace();
+                db = mongoClient.getDB(mongoConfig.getDatabase());
+
+            } catch (Exception e1) {
+                System.err.println("Could not initialize Mongo Client: " + e1.toString());
+                e1.printStackTrace();
+            }
         }
     }
     /**
