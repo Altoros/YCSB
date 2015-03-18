@@ -256,3 +256,11 @@ def _do_rm_mongodb_data():
     sudo("rm -rf /disk1/mongodb-data/config/*")
     sudo("rm -rf /disk1/mongodb-data/db/rs0/*")
     sudo("rm -rf /disk1/mongodb-data/db/rs1/*")
+    sudo("rm -rf /disk1/mongodb-conf/*")
+
+@task
+def mongodb_copy_logs():
+    files = ['config.log', 'rs0.log', 'rs1.log']
+    for file in files:
+        log = tar('/disk1/mongodb-logs', file)
+        get(log)
