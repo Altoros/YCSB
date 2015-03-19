@@ -12,6 +12,7 @@ import net.spy.memcached.MemcachedClient;
 import net.spy.memcached.PersistTo;
 import net.spy.memcached.ReplicateTo;
 
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
@@ -83,6 +84,16 @@ public class CouchbaseClient extends MemcachedCompatibleClient {
             e.printStackTrace();
             return ERROR;
         }
+    }
+
+    @Override
+    public int updateOne(String table, String key, String field, ByteIterator value) {
+        return update(table, key, Collections.singletonMap(field, value));
+    }
+
+    @Override
+    public int updateAll(String table, String key, Map<String,ByteIterator> values) {
+        return update(table, key, values);
     }
 
     @Override
