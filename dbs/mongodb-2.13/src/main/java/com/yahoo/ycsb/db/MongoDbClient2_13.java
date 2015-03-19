@@ -176,7 +176,7 @@ public class MongoDbClient2_13 extends DB {
 
     @Override
     public int updateOne(String table, String key, String field, ByteIterator value) {
-        BasicDBObject fieldsToSet = new BasicDBObject(key, value.toArray());
+        BasicDBObject fieldsToSet = new BasicDBObject(field, value.toArray());
         return update(table, key, fieldsToSet);
     }
 
