@@ -87,28 +87,30 @@ public class CouchbaseClient extends MemcachedCompatibleClient {
 
     @Override
     public int update(String table, String key, Map<String, ByteIterator> values) {
-        JsonObject content = null;
         key = createQualifiedKey(table, key);
         try {
             Iterator<Map.Entry<String, ByteIterator>> entries = values.entrySet().iterator();
-            content = JsonObject.empty();
             while (entries.hasNext()) {
                 Map.Entry<String, ByteIterator> entry = entries.next();
-                content.put(entry.getKey(), entry.getValue().toString());
+                JsonDocument loaded = defaultBucket.get(key);
+                if (loaded == null) {
+                    System.err.println("Document not found!");
+                } else {
+                    loaded.content().put(entry.getKey(), entry.getValue().toString());
+                    defaultBucket.replace(loaded);
+                }
             }
 
         } catch (Exception e) {
             e.printStackTrace();
             return ERROR;
         }
-        JsonDocument document = JsonDocument.create(key, objectExpirationTime, content);
-        defaultBucket.upsert(document);
         return OK;
     }
 
     @Override
     public int insert(String table, String key, Map<String, ByteIterator> values) {
-        JsonObject content = null;
+        JsonObject content;
         key = createQualifiedKey(table, key);
         try {
             Iterator<Map.Entry<String, ByteIterator>> entries = values.entrySet().iterator();
