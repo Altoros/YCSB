@@ -137,7 +137,7 @@ public abstract class DB
     public abstract int scanOne(String table, String startkey, int recordcount, String field, List<Map<String, ByteIterator>> result);
 
     /**
-     * Update a record in the database. Any field/value pairs in the specified values Map will be written into the record with the specified
+     * Update a record in the database. Field and value parameters will be written into the record with the specified
      * record key, overwriting any existing values with the same field name.
      *
      * @param table The name of the table

@@ -112,22 +112,10 @@ public class MongoDbClient2_13 extends DB {
             }
         }
     }
-    /**
-     * Cleanup any state for this DB.
-     * Called once per DB instance; there is one DB instance per client thread.
-     */
-    @Override
-    public void cleanup() throws DBException {
-        mongoClient.close();
-    }
 
-    /**
-     * Delete a record from the database.
-     *
-     * @param table The name of the table
-     * @param key The record key of the record to delete.
-     * @return Zero on success, a non-zero error code on error. See this class's description for a discussion of error codes.
-     */
+    @Override
+    public void cleanup() throws DBException { }
+
     @Override
     public int delete(String table, String key) {
         try {
@@ -143,15 +131,6 @@ public class MongoDbClient2_13 extends DB {
     }
 
     @Override
-    /**
-     * Insert a record in the database. Any field/value pairs in the specified values HashMap will be written into the record with the specified
-     * record key.
-     *
-     * @param table The name of the table
-     * @param key The record key of the record to insert.
-     * @param values A HashMap of field/value pairs to insert in the record
-     * @return Zero on success, a non-zero error code on error. See this class's description for a discussion of error codes.
-     */
     public int insert(String table, String key, Map<String, ByteIterator> values) {
         try {
             DBCollection collection = db.getCollection(table);
@@ -170,37 +149,17 @@ public class MongoDbClient2_13 extends DB {
     }
 
     @Override
-    @SuppressWarnings("unchecked")
-    /**
-     * Read a record from the database. Each field/value pair from the result will be stored in a Map.
-     *
-     * @param table The name of the table
-     * @param key The record key of the record to read.
-     * @param field The field to read
-     * @param result A Map of field/value pairs for the result
-     * @return Zero on success, a non-zero error code on error or "not found".
-     */
     public int readOne(String table, String key, String field, Map<String,ByteIterator> result) {
         BasicDBObject fieldsToReturn = new BasicDBObject(field, 1);
         return read(table, key, result, fieldsToReturn);
     }
 
     @Override
-    @SuppressWarnings("unchecked")
-    /**
-     * Read a record from the database. Each field/value pair from the result will be stored in a Map.
-     *
-     * @param table The name of the table
-     * @param key The record key of the record to read.
-     * @param result A Map of field/value pairs for the result
-     * @return Zero on success, a non-zero error code on error or "not found".
-     */
     public int readAll(String table, String key, Map<String,ByteIterator> result) {
         return read(table, key, result, null);
     }
 
-
-    public int read(String table, String key, Map<String, ByteIterator> result, DBObject fieldsToReturn) {
+    private int read(String table, String key, Map<String, ByteIterator> result, DBObject fieldsToReturn) {
         try {
             DBCollection collection = db.getCollection(table);
             BasicDBObject q = new BasicDBObject("_id", key);
@@ -216,29 +175,12 @@ public class MongoDbClient2_13 extends DB {
     }
 
     @Override
-    /**
-     * Update a record in the database. Any field/value pairs in the specified values Map will be written into the record with the specified
-     * record key, overwriting any existing values with the same field name.
-     *
-     * @param table The name of the table
-     * @param key The record key of the record to write.
-     * @param value The value to update in the key record
-     * @return Zero on success, a non-zero error code on error.  See this class's description for a discussion of error codes.
-     */
     public int updateOne(String table, String key, String field, ByteIterator value) {
         BasicDBObject fieldsToSet = new BasicDBObject(key, value.toArray());
         return update(table, key, fieldsToSet);
     }
 
-    /**
-     * Update a record in the database. Any field/value pairs in the specified values Map will be written into the record with the specified
-     * record key, overwriting any existing values with the same field name.
-     *
-     * @param table The name of the table
-     * @param key The record key of the record to write.
-     * @param values A Map of field/value pairs to update in the record
-     * @return Zero on success, a non-zero error code on error.  See this class's description for a discussion of error codes.
-     */
+    @Override
     public int updateAll(String table, String key, Map<String,ByteIterator> values) {
 
         BasicDBObject fieldsToSet = new BasicDBObject();
@@ -251,7 +193,7 @@ public class MongoDbClient2_13 extends DB {
         return update(table, key, fieldsToSet);
     }
 
-    public int update(String table, String key, DBObject fieldsToSet) {
+    private int update(String table, String key, DBObject fieldsToSet) {
         try {
 
             DBCollection collection = db.getCollection(table);
@@ -268,38 +210,16 @@ public class MongoDbClient2_13 extends DB {
     }
 
     @Override
-    @SuppressWarnings("unchecked")
-    /**
-     * Perform a range scan for a set of records in the database. Each field/value pair from the result will be stored in a Map.
-     *
-     * @param table The name of the table
-     * @param startkey The record key of the first record to read.
-     * @param recordcount The number of records to read
-     * @param result A List of Maps, where each Map is a set field/value pairs for one record
-     * @return Zero on success, a non-zero error code on error.  See this class's description for a discussion of error codes.
-     */
     public int scanAll(String table, String startkey, int recordcount, List<Map<String, ByteIterator>> result) {
         return scan(table, startkey, recordcount, result);
     }
 
     @Override
-    @SuppressWarnings("unchecked")
-    /**
-     * Perform a range scan for a set of records in the database. Each field/value pair from the result will be stored in a Map.
-     *
-     * @param table The name of the table
-     * @param startkey The record key of the first record to read.
-     * @param recordcount The number of records to read
-     * @param field The field to read
-     * @param result A List of Maps, where each Map is a set field/value pairs for one record
-     * @return Zero on success, a non-zero error code on error.  See this class's description for a discussion of error codes.
-     */
     public int scanOne(String table, String startkey, int recordcount, String field, List<Map<String, ByteIterator>> result) {
-
         return scan(table, startkey, recordcount, result);
     }
 
-    public int scan(String table, String startkey, int recordcount, List<Map<String, ByteIterator>> result) {
+    private int scan(String table, String startkey, int recordcount, List<Map<String, ByteIterator>> result) {
         DBCursor cursor;
         try {
             DBCollection collection = db.getCollection(table);
