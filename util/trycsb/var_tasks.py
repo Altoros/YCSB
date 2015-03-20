@@ -8,7 +8,6 @@ from fabric.api import get
 from fabric.api import hide
 from fabric.api import parallel
 from fabric.api import roles
-from fabric.api import run
 from fabric.api import runs_once
 from fabric.api import sudo
 from fabric.api import settings
@@ -107,6 +106,8 @@ def _virgin_clients_for_mongodb():
         sudo('rm -f /disk1/mongodb-logs/*.log')
         sudo('killall -s 15 sar')
         sudo('killall -s 15 mongos')
+        sudo('killall -s 15 java')
+        sudo('echo "echo 1 > /proc/sys/vm/drop_caches" | sudo sh')
 
 
 @roles('servers')
