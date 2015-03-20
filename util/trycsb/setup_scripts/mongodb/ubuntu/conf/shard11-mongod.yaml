@@ -6,8 +6,8 @@ systemLog:
 storage:
   journal:
     enabled: true
-    commitIntervalMs: 100
   dbPath: "/disk1/mongodb-data/db/rs1"
+  engine: wiredTiger
 processManagement:
   fork: true
 net:
