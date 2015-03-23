@@ -91,7 +91,7 @@ def plot_ram_stats_in_percents(params):
 
 def plot_disk_stats(params):
     stats_names = ['tps', 'rtps', 'wtps', 'bread/s', 'bwrtn/s']
-    plot_any_system_stats(params.sar_log, '-d -p', stats_names, 'dsk_stats', 'Disks activity')
+    plot_any_system_stats(params.sar_log, '-b', stats_names, 'dsk_stats', 'Disks activity')
 
 
 def plot_queue_stats(params):
