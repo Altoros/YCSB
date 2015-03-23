@@ -344,7 +344,7 @@ public class CoreWorkload extends Workload {
 
         readallfields = Boolean.parseBoolean(p.getProperty(READ_ALL_FIELDS_PROPERTY, READ_ALL_FIELDS_PROPERTY_DEFAULT));
         writeallfields = Boolean.parseBoolean(p.getProperty(WRITE_ALL_FIELDS_PROPERTY, WRITE_ALL_FIELDS_PROPERTY_DEFAULT));
-        orderedinserts = !p.getProperty(INSERT_ORDER_PROPERTY, INSERT_ORDER_PROPERTY_DEFAULT).equals("hashed");
+        orderedinserts = p.getProperty(INSERT_ORDER_PROPERTY, INSERT_ORDER_PROPERTY_DEFAULT).equals("ordered");
 
         trackLatestInsertForReads = requestdistrib.equals("latest") || requestdistrib.equals("exponential");
         keynumGenerator = new KeynumGenerator(insertstart, trackLatestInsertForReads);
