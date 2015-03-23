@@ -32,7 +32,7 @@ def get_stats(stats_src, stats_names):
 
         for line in data[1:]:
             line_points = line.split(';')
-            [stats[x].append(y) for (x, y) in zip(names, line_points)]
+            [stats[x].append(y.replace(",", ".")) for (x, y) in zip(names, line_points)]
 
     return {key: stats[key] for key in stats_names}
 
