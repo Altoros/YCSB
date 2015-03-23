@@ -73,7 +73,7 @@ def _setup_fabric_env(conf):
 
 
 @parallel
-@roles('servers')
+@roles('servers', 'clients')
 def _virgin_servers_for_all():
     with settings(warn_only=True):
        sudo('service mysql stop')
@@ -198,45 +198,68 @@ def copy_system_confs():
 
 @task
 def benchmark_copy_logs():
-    dir = '/home/altoros/benchmarks/logs/cassandra_b3'
-    log_stats = 'b_128_threads_zipfian-stats__%s__16-Mar-2015_11-47-59.log'
-    log_ycsb  = 'b_128_threads_zipfian__%s__16-Mar-2015_11-47-59.log'
+    dir = '/home/altoros/benchmarks/logs/cassandra_a2'
+    log_stats = 'a_128_threads-stats__%s__20-Mar-2015_16-50-35.log'
+    log_ycsb  = 'a_128_threads__%s__20-Mar-2015_16-50-35.log'
 
     with settings(warn_only=True):
         get(tar(dir, log_stats % state.env['host']))
         get(tar(dir, log_ycsb % state.env['host']))
 
 
-@task
-def cassandra_copy_logs(workload_name):
-    dir = '/var/log/cassandra'
+@roles('servers')
+def _do_cassandra_copy_logs(workload_name, keyspace):
+    cfg_dir = '/etc/cassandra/'
+    logs_dir = '/var/log/cassandra'
     log = 'system.log'
-    table = 'a3_ks.test_table'
+    table = '%s.test_table' % keyspace
     workload = workload_name
     prefix = '%s__%s' % (workload, state.env['host'])
 
     with settings(warn_only=True):
-        cfstats_out = '%s_cfstats.txt' % prefix
+        cfstats_out = '%s__cfstats.txt' % prefix
         run('nodetool cfstats %s > %s' % (table, cfstats_out))
         get(cfstats_out)
 
-        tpstats_out = '%s_tpstats.txt' % prefix
+        tpstats_out = '%s__tpstats.txt' % prefix
         run('nodetool tpstats > %s' % tpstats_out)
         get(tpstats_out)
 
-        info_out = '%s_info.txt' % prefix
+        info_out = '%s__info.txt' % prefix
         run('nodetool info > %s' % info_out)
         get(info_out)
 
-        system_out = tar(dir, log,  '%s__%s.tar' % (prefix, log))
+        system_out = tar(logs_dir, log,  '%s__%s.tar' % (prefix, log))
         get(system_out)
+
+        cassandra_yaml = 'cassandra.yaml'
+        cassandra_env = 'cassandra-env.sh'
+
+        get(cfg_dir + cassandra_yaml, '%(host)s/' + prefix + '__' + cassandra_yaml)
+        get(cfg_dir + cassandra_env, '%(host)s/' + prefix + '__' + cassandra_env)
 
 
 @task
-def cassandra_set_cache():
+@runs_once
+def cassandra_copy_logs(config_path=BENCHMARK_CONF_PATH, workload_name=None, keyspace=None):
+    conf = BenchmarkConfig(config_path)
+    _setup_fabric_env(conf)
+    execute(_do_cassandra_copy_logs, workload_name, keyspace)
+
+
+@roles('servers')
+def _do_cassandra_set_cache():
     #sudo('sed -i "s|native_transport_max_threads: 1024 # changed|native_transport_max_threads: 99000000 # changed|g" /etc/cassandra/cassandra.yaml')
-    #run('nodetool -h %s setcachecapacity -- 256 40960 50' % state.env['host'])
-    run('nodetool -h %s setcachecapacity -- 128 512 50' % state.env['host'])
+    run('nodetool -h %s setcachecapacity -- 256 40960 50' % state.env['host'])
+    #run('nodetool -h %s setcachecapacity -- 128 512 50' % state.env['host'])
+
+
+@task
+@runs_once
+def cassandra_set_cache(config_path=BENCHMARK_CONF_PATH):
+    conf = BenchmarkConfig(config_path)
+    _setup_fabric_env(conf)
+    execute(_do_cassandra_set_cache)
 
 
 @task
