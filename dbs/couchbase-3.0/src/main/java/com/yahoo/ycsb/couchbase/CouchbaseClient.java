@@ -13,7 +13,6 @@ import net.spy.memcached.MemcachedClient;
 import net.spy.memcached.PersistTo;
 import net.spy.memcached.ReplicateTo;
 import rx.Observable;
-import rx.functions.Action1;
 import rx.functions.Func0;
 import rx.functions.Func1;
 
@@ -107,6 +106,8 @@ public class CouchbaseClient extends MemcachedCompatibleClient {
             Iterator<Map.Entry<String, ByteIterator>> entries = values.entrySet().iterator();
             while (entries.hasNext()) {
                 final Map.Entry<String, ByteIterator> entry = entries.next();
+                final String k = entry.getKey();
+                final String v = entry.getValue().toString();
                 Observable<JsonDocument> loaded = defaultBucket.async().get(key);
                 if (loaded == null) {
                     System.err.println("Document not found!");
@@ -121,14 +122,14 @@ public class CouchbaseClient extends MemcachedCompatibleClient {
                             .map(new Func1<JsonDocument, JsonDocument>() {
                                 @Override
                                 public JsonDocument call(JsonDocument document) {
-                                    document.content().put(entry.getKey(), entry.getValue().toString());
+                                    document.content().put(k, v);
                                     return document;
                                 }
                             })
-                            .flatMap(new Func1<JsonDocument, Observable<? extends JsonDocument>>() {
+                            .flatMap(new Func1<JsonDocument, Observable<JsonDocument>>() {
                                 @Override
-                                public Observable<? extends JsonDocument> call(JsonDocument d) {
-                                    return defaultBucket.async().replace(d);
+                                public Observable<JsonDocument> call(JsonDocument document) {
+                                    return defaultBucket.async().replace(document);
                                 }
                             })
                             .retryWhen(new Func1<Observable<? extends Throwable>, Observable<?>>() {
@@ -146,12 +147,7 @@ public class CouchbaseClient extends MemcachedCompatibleClient {
                                            }
                                        }
                             )
-                            .subscribe(new Action1<JsonDocument>() {
-                                @Override
-                                public void call(JsonDocument updated) {
-                                    System.out.println("Updated: " + updated.id());
-                                }
-                            });
+                            .subscribe();
                 }
             }
         } catch (Exception e) {
