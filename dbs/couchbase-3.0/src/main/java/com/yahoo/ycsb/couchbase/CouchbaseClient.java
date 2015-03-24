@@ -13,6 +13,9 @@ import net.spy.memcached.MemcachedClient;
 import net.spy.memcached.PersistTo;
 import net.spy.memcached.ReplicateTo;
 import rx.Observable;
+import rx.functions.Action1;
+import rx.functions.Func0;
+import rx.functions.Func1;
 
 import java.util.Collections;
 import java.util.Iterator;
@@ -103,27 +106,52 @@ public class CouchbaseClient extends MemcachedCompatibleClient {
         try {
             Iterator<Map.Entry<String, ByteIterator>> entries = values.entrySet().iterator();
             while (entries.hasNext()) {
-                Map.Entry<String, ByteIterator> entry = entries.next();
+                final Map.Entry<String, ByteIterator> entry = entries.next();
                 Observable<JsonDocument> loaded = defaultBucket.async().get(key);
                 if (loaded == null) {
                     System.err.println("Document not found!");
                 } else {
                     final String finalKey = key;
-                    Observable.defer(() -> defaultBucket.async().get(finalKey))
-                            .map(document -> {
-                                document.content().put(entry.getKey(), entry.getValue().toString());
-                                return document;
+                    Observable.defer(new Func0<Observable<JsonDocument>>() {
+                        @Override
+                        public Observable<JsonDocument> call() {
+                            return defaultBucket.async().get(finalKey);
+                        }
+                    })
+                            .map(new Func1<JsonDocument, JsonDocument>() {
+                                @Override
+                                public JsonDocument call(JsonDocument document) {
+                                    document.content().put(entry.getKey(), entry.getValue().toString());
+                                    return document;
+                                }
                             })
-                            .flatMap(defaultBucket.async()::replace)
-                            .retryWhen(attempts ->
-                                            attempts.flatMap(e -> {
-                                                if (!(e instanceof CASMismatchException)) {
-                                                    return Observable.error(e);
-                                                }
-                                                return Observable.timer(1, TimeUnit.MILLISECONDS);
-                                            })
+                            .flatMap(new Func1<JsonDocument, Observable<? extends JsonDocument>>() {
+                                @Override
+                                public Observable<? extends JsonDocument> call(JsonDocument d) {
+                                    return defaultBucket.async().replace(d);
+                                }
+                            })
+                            .retryWhen(new Func1<Observable<? extends Throwable>, Observable<?>>() {
+                                           @Override
+                                           public Observable<?> call(Observable<? extends Throwable> attempts) {
+                                               return attempts.flatMap(new Func1<Throwable, Observable<? extends Long>>() {
+                                                   @Override
+                                                   public Observable<? extends Long> call(Throwable e) {
+                                                       if (!(e instanceof CASMismatchException)) {
+                                                           return Observable.error(e);
+                                                       }
+                                                       return Observable.timer(1, TimeUnit.MILLISECONDS);
+                                                   }
+                                               });
+                                           }
+                                       }
                             )
-                            .subscribe(updated -> System.out.println("Updated: " + updated.id()));
+                            .subscribe(new Action1<JsonDocument>() {
+                                @Override
+                                public void call(JsonDocument updated) {
+                                    System.out.println("Updated: " + updated.id());
+                                }
+                            });
                 }
             }
         } catch (Exception e) {
