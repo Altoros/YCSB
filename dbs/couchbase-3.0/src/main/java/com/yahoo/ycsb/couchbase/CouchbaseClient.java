@@ -5,22 +5,25 @@ import com.couchbase.client.java.Cluster;
 import com.couchbase.client.java.CouchbaseCluster;
 import com.couchbase.client.java.document.JsonDocument;
 import com.couchbase.client.java.document.json.JsonObject;
+import com.couchbase.client.java.error.CASMismatchException;
 import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.DBException;
 import com.yahoo.ycsb.memcached.MemcachedCompatibleClient;
 import net.spy.memcached.MemcachedClient;
 import net.spy.memcached.PersistTo;
 import net.spy.memcached.ReplicateTo;
+import rx.Observable;
 
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Alexei Okhrimenko, 2015
  *
- * this client uses Couchbase Java SDK 2.0.3 and supports Couchbase Server 3.0
+ * this client uses Couchbase Java SDK 2.1.1 and supports Couchbase Server 3.0
  */
 public class CouchbaseClient extends MemcachedCompatibleClient {
     protected static CouchbaseConfig config;
@@ -63,11 +66,9 @@ public class CouchbaseClient extends MemcachedCompatibleClient {
             replicateTo = config.getReplicateTo();
 
             // Connect to cluster
-//            cluster = CouchbaseCluster.create(config.getHosts());
             cluster = getClusterInstance();
 
             // Open the default bucket
-//            defaultBucket = cluster.openBucket();
             defaultBucket = getBucketInstance();
         } catch (Exception e) {
             throw new DBException(e);
@@ -92,7 +93,7 @@ public class CouchbaseClient extends MemcachedCompatibleClient {
     }
 
     @Override
-    public int updateAll(String table, String key, Map<String,ByteIterator> values) {
+    public int updateAll(String table, String key, Map<String, ByteIterator> values) {
         return update(table, key, values);
     }
 
@@ -103,15 +104,28 @@ public class CouchbaseClient extends MemcachedCompatibleClient {
             Iterator<Map.Entry<String, ByteIterator>> entries = values.entrySet().iterator();
             while (entries.hasNext()) {
                 Map.Entry<String, ByteIterator> entry = entries.next();
-                JsonDocument loaded = defaultBucket.get(key);
+                Observable<JsonDocument> loaded = defaultBucket.async().get(key);
                 if (loaded == null) {
                     System.err.println("Document not found!");
                 } else {
-                    loaded.content().put(entry.getKey(), entry.getValue().toString());
-                    defaultBucket.replace(loaded);
+                    final String finalKey = key;
+                    Observable.defer(() -> defaultBucket.async().get(finalKey))
+                            .map(document -> {
+                                document.content().put(entry.getKey(), entry.getValue().toString());
+                                return document;
+                            })
+                            .flatMap(defaultBucket.async()::replace)
+                            .retryWhen(attempts ->
+                                            attempts.flatMap(e -> {
+                                                if (!(e instanceof CASMismatchException)) {
+                                                    return Observable.error(e);
+                                                }
+                                                return Observable.timer(1, TimeUnit.MILLISECONDS);
+                                            })
+                            )
+                            .subscribe(updated -> System.out.println("Updated: " + updated.id()));
                 }
             }
-
         } catch (Exception e) {
             e.printStackTrace();
             return ERROR;
