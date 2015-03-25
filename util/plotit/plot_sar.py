@@ -1,8 +1,9 @@
-__author__ = 'vladimir.starostenkov'
+"""
 
+"""
 import argparse
-import os
 import sys
+import subprocess
 
 from multiprocessing import Process
 from matplotlib import pyplot as plt
@@ -20,29 +21,160 @@ def join_proc(proc):
         proc.join()
 
 
-def get_stats(stats_src, stats_names):
-    stats = {}
+class SarLogSerializer(object):
 
-    with open(stats_src) as f:
-        data = f.readlines()
+    def __init__(self, stats_src):
+        self._stats_src = stats_src
 
-        names = data[0].strip().split(';')
-        for name in names:
-            stats[name] = []
+    def _get_metric_names(self):
+        raise NotImplementedError('Please Implement this method')
 
-        for line in data[1:]:
-            line_points = line.split(';')
-            [stats[x].append(y.replace(",", ".")) for (x, y) in zip(names, line_points)]
+    def _get_sar_system_flag(self):
+        raise NotImplementedError('Please Implement this method')
 
-    return {key: stats[key] for key in stats_names}
+    def _read_sar_binary_data(self):
+        cmd = 'sadf -d %s -- %s' % (self._stats_src, self._get_sar_system_flag())
+
+        p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
+        (output, err) = p.communicate()
+
+        return output
+
+    def deserialize(self):
+        data = self._read_sar_binary_data().splitlines()
+
+        stats = {}
+        metric_names = data[0].strip().split(';')
+
+        for metric_name in metric_names:
+            if metric_name in self._get_metric_names():
+                stats[metric_name] = []
+
+        for metrics_str in data[1:]:
+            metrics = metrics_str.split(';')
+
+            for (metric_name, metric) in zip(metric_names, metrics):
+                if metric_name in self._get_metric_names():
+                    metric = metric.replace(',', '.')
+                    stats[metric_name].append(metric)
+
+        return stats
 
 
-def plot_any_system_stats(src_sar_log_path, sar_system_flag,
-                          stats_names, tmp_stats_file_name, plot_title):
-    stats_out = '%s_stats.tmp' % tmp_stats_file_name
-    os.system('sadf -d %s -- %s > %s' % (src_sar_log_path, sar_system_flag, stats_out))
+class CpuSarLogSerializer(SarLogSerializer):
 
-    stats = get_stats(stats_out, stats_names)
+    def __init__(self, stats_src):
+        SarLogSerializer.__init__(self, stats_src)
+
+    def _get_sar_system_flag(self):
+        return '-u'
+
+    def _get_metric_names(self):
+        return ['%user', '%nice', '%system', '%iowait']
+
+
+class RamSarLogSerializer(SarLogSerializer):
+
+    def __init__(self, stats_src):
+        SarLogSerializer.__init__(self, stats_src)
+
+    def _get_sar_system_flag(self):
+        return '-r'
+
+    def _get_metric_names(self):
+        return ['kbmemfree', 'kbmemused', 'kbbuffers', 'kbcached', 'kbcommit',
+                'kbactive', 'kbinact', 'kbdirty', '%memused', '%commit']
+
+    def deserialize(self):
+        stats = super(RamSarLogSerializer, self).deserialize()
+
+        ram_stats = {
+            'absolute': {},
+            'percents': {}
+        }
+
+        for (k, v) in stats.items():
+            if k.startswith('%'):
+                ram_stats['percents'][k] = v
+            else:
+                ram_stats['absolute'][k] = v
+
+        return ram_stats
+
+
+class NetworkSarLogSerializer(SarLogSerializer):
+
+    def __init__(self, stats_src):
+        SarLogSerializer.__init__(self, stats_src)
+
+    def _get_sar_system_flag(self):
+        return '-n DEV'
+
+    def _get_metric_names(self):
+        return ['rxkB/s', 'txkB/s', '%ifutil']
+
+
+class QueueSarLogSerializer(SarLogSerializer):
+
+    def __init__(self, stats_src):
+        SarLogSerializer.__init__(self, stats_src)
+
+    def _get_sar_system_flag(self):
+        return '-q'
+
+    def _get_metric_names(self):
+        return ['runq-sz', 'plist-sz', 'blocked']
+
+
+class DisksSarLogSerializer(SarLogSerializer):
+
+    def __init__(self, stats_src, all_disks=False):
+        SarLogSerializer.__init__(self, stats_src)
+        self._all_disks = all_disks
+
+    def _get_sar_system_flag(self):
+        return '-b' if self._all_disks else '-d -p'
+
+    def _get_metric_names(self):
+        for_all = ['tps', 'rtps', 'wtps', 'bread/s', 'bwrtn/s']
+        for_dev = ['tps', 'rd_sec/s', 'wr_sec/s', 'avgrq-sz', 'avgqu-sz', 'await', 'svctm', '%util']
+
+        return for_all if self._all_disks else for_dev
+
+    def _disks_deserialize(self):
+        data = self._read_sar_binary_data().splitlines()
+
+        stats = {}
+        metric_names = data[0].strip().split(';')
+        dev_col_index = metric_names.index('DEV')
+
+        for metrics_str in data[1:]:
+            metrics = metrics_str.split(';')
+            dev_name = metrics[dev_col_index]
+
+            if not stats.get(dev_name):
+                stats[dev_name] = {}
+
+            for (metric_name, metric) in zip(metric_names, metrics):
+                if metric_name in self._get_metric_names():
+                    if not stats[dev_name].get(metric_name):
+                        stats[dev_name][metric_name] = []
+
+                    metric = metric.replace(',', '.')
+                    stats[dev_name][metric_name].append(metric)
+
+        return stats
+
+    def deserialize(self):
+        if self._all_disks:
+            return super(DisksSarLogSerializer, self).deserialize()
+        else:
+            return self._disks_deserialize()
+
+
+def plot_any_system_stats(stats, plot_title):
+    stats_names = list(stats.keys())
+
     time = range( len(stats[stats.keys()[0]]) )
 
     def get_show_hide_fn(stats_lines):
@@ -75,49 +207,59 @@ def plot_any_system_stats(src_sar_log_path, sar_system_flag,
 
 
 def plot_cpu_stats(params):
-    stats_names = ['%user', '%nice', '%system', '%iowait']
-    plot_any_system_stats(params.sar_log, '-u', stats_names, 'cpu_stats', 'CPU activity (all cores)')
+    serializer = CpuSarLogSerializer(params.sar_log)
+    return [fork_plot(plot_any_system_stats, (serializer.deserialize(), 'CPU activity (all cores)'))]
 
 
-def plot_ram_stats_in_kb(params):
-    stats_names = ['kbmemfree', 'kbmemused', 'kbbuffers', 'kbcached', 'kbcommit', 'kbactive', 'kbinact', 'kbdirty']
-    plot_any_system_stats(params.sar_log, '-r', stats_names, 'ram_kb_stats', 'Memory activity (kilobytes)')
+def plot_ram_stats(params):
+    serializer = RamSarLogSerializer(params.sar_log)
+    stats = serializer.deserialize()
 
+    proc1 = fork_plot(plot_any_system_stats, (stats['absolute'], 'Memory activity (kilobytes)'))
+    proc2 = fork_plot(plot_any_system_stats, (stats['percents'], 'Memory activity (percents)'))
 
-def plot_ram_stats_in_percents(params):
-    stats_names = ['%memused', '%commit']
-    plot_any_system_stats(params.sar_log, '-r', stats_names, 'ram_percents_stats', 'Memory activity (percents)')
-
-
-def plot_disk_stats(params):
-    stats_names = ['tps', 'rtps', 'wtps', 'bread/s', 'bwrtn/s']
-    plot_any_system_stats(params.sar_log, '-b', stats_names, 'dsk_stats', 'Disks activity')
-
-
-def plot_queue_stats(params):
-    stats_names = ['runq-sz', 'plist-sz', 'blocked']
-    plot_any_system_stats(params.sar_log, '-q', stats_names, 'queue_stats', 'Queue activity')
+    return [proc1, proc2]
 
 
 def plot_network_stats(params):
-    stats_names = ['rxkB/s', 'txkB/s', '%ifutil']
-    plot_any_system_stats(params.sar_log, '-n DEV', stats_names, 'network_stats', 'Network activity')
+    serializer = NetworkSarLogSerializer(params.sar_log)
+    return [fork_plot(plot_any_system_stats, (serializer.deserialize(), 'Network activity'))]
+
+
+def plot_queue_stats(params):
+    serializer = QueueSarLogSerializer(params.sar_log)
+    return [fork_plot(plot_any_system_stats, (serializer.deserialize(), 'Queue activity'))]
+
+
+def plot_disks_stats(params):
+    disks = []
+    if params.disks:
+        disks = params.disks.split(',')
+
+    serializer = DisksSarLogSerializer(params.sar_log, not disks)
+    stats = serializer.deserialize()
+
+    procs = []
+    if not disks:
+        procs.append(fork_plot(plot_any_system_stats, (stats, 'All disks activity')))
+    else:
+        for disk_name in disks:
+            procs.append(fork_plot(plot_any_system_stats, (stats[disk_name], 'Disk [%s] activity' % disk_name)))
+
+    return procs
 
 
 def plot_stats(params):
-    cpu_proc  = fork_plot(plot_cpu_stats, (params, ))
-    ram_proc0 = fork_plot(plot_ram_stats_in_kb, (params, ))
-    ram_proc1 = fork_plot(plot_ram_stats_in_percents, (params, ))
-    dsk_proc  = fork_plot(plot_disk_stats, (params, ))
-    queue_proc = fork_plot(plot_queue_stats, (params, ))
-    network_proc = fork_plot(plot_network_stats, (params, ))
+    procs = []
 
-    join_proc(cpu_proc)
-    join_proc(ram_proc0)
-    join_proc(ram_proc1)
-    join_proc(dsk_proc)
-    join_proc(queue_proc)
-    join_proc(network_proc)
+    procs.extend(plot_cpu_stats(params))
+    procs.extend(plot_ram_stats(params))
+    procs.extend(plot_network_stats(params))
+    procs.extend(plot_queue_stats(params))
+    procs.extend(plot_disks_stats(params))
+
+    for proc in procs:
+        join_proc(proc)
 
     return 0
 
@@ -125,6 +267,7 @@ def plot_stats(params):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(usage=__doc__)
     parser.add_argument('--sar_log', type=str, required=True, help='SAR log filename')
+    parser.add_argument('--disks', type=str, help='Disks devices names (separated by comma) to plot')
     args = parser.parse_args()
 
     return_code = plot_stats(args)
