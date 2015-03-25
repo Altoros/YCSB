@@ -1,8 +1,8 @@
 ==========================================================================================================
 A1:
 
-      CREATE KEYSPACE a1_ks WITH REPLICATION = {'class' : 'SimpleStrategy', 'replication_factor': 2 };
-      CREATE TABLE a1_ks.test_table (
+      CREATE KEYSPACE ks_load_1 WITH REPLICATION = {'class' : 'SimpleStrategy', 'replication_factor': 2 };
+      CREATE TABLE ks_load_1.test_table (
            y_id varchar primary key,
            field0 blob,
            field1 blob,
@@ -16,10 +16,21 @@ A1:
            field9 blob
       );
 
-      ALTER KEYSPACE a1_ks WITH DURABLE_WRITES = false;
+      ALTER KEYSPACE ks_load_1 WITH DURABLE_WRITES = false;
       ALTER KEYSPACE system_traces WITH DURABLE_WRITES = false;
       SELECT * FROM system.schema_keyspaces;
 
+      ===
+
+      CREATE KEYSPACE ks_load_1 WITH REPLICATION = {'class' : 'SimpleStrategy', 'replication_factor': 2 };
+      CREATE TABLE ks_load_1.test_table (
+           y_id varchar primary key,
+           field0 blob
+      );
+
+      ALTER KEYSPACE ks_load_1 WITH DURABLE_WRITES = false;
+      ALTER KEYSPACE system_traces WITH DURABLE_WRITES = false;
+      SELECT * FROM system.schema_keyspaces;
 
 ==========================================================================================================
 A2:

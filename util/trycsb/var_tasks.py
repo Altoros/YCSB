@@ -8,6 +8,7 @@ from fabric.api import get
 from fabric.api import hide
 from fabric.api import parallel
 from fabric.api import roles
+from fabric.api import run
 from fabric.api import runs_once
 from fabric.api import sudo
 from fabric.api import settings
@@ -120,8 +121,8 @@ def _virgin_servers_for_cassandra():
     sudo('rm -f /var/log/cassandra/*.log')
     time.sleep(randint(1, 10))
     sudo('service cassandra start')
-    time.sleep(10)
-    run('nodetool -h %s setcachecapacity -- 128 0 50' % state.env['host'])
+    #time.sleep(10)
+    #run('nodetool -h %s setcachecapacity -- 128 0 50' % state.env['host'])
     #sudo('sed -i "s|concurrent_reads: 16 # changed|concurrent_reads: 48 # changed|g" /etc/cassandra/cassandra.yaml')
     #sudo('service datastax-agent start')
 
@@ -196,15 +197,19 @@ def copy_system_confs():
     get('/etc/sysctl.conf')
 
 
-@task
-def benchmark_copy_logs():
-    dir = '/home/altoros/benchmarks/logs/cassandra_a2'
-    log_stats = 'a_128_threads-stats__%s__20-Mar-2015_16-50-35.log'
-    log_ycsb  = 'a_128_threads__%s__20-Mar-2015_16-50-35.log'
-
+@roles('servers', 'clients')
+def _do_benchmark_copy_logs(src_dir, workload_name, date_str):
     with settings(warn_only=True):
-        get(tar(dir, log_stats % state.env['host']))
-        get(tar(dir, log_ycsb % state.env['host']))
+        get(tar(src_dir, '%s-stats__%s__%s.log' % (workload_name, state.env['host'], date_str)))
+        get(tar(src_dir, '%s__%s__%s.log' % (workload_name, state.env['host'], date_str)))
+
+
+@task
+@runs_once
+def benchmark_copy_logs(config_path=BENCHMARK_CONF_PATH, src_dir=None, workload_name=None, date_str=None):
+    conf = BenchmarkConfig(config_path)
+    _setup_fabric_env(conf)
+    execute(_do_benchmark_copy_logs, src_dir, workload_name, date_str)
 
 
 @roles('servers')
@@ -250,8 +255,15 @@ def cassandra_copy_logs(config_path=BENCHMARK_CONF_PATH, workload_name=None, key
 @roles('servers')
 def _do_cassandra_set_cache():
     #sudo('sed -i "s|native_transport_max_threads: 1024 # changed|native_transport_max_threads: 99000000 # changed|g" /etc/cassandra/cassandra.yaml')
-    run('nodetool -h %s setcachecapacity -- 256 40960 50' % state.env['host'])
-    #run('nodetool -h %s setcachecapacity -- 128 512 50' % state.env['host'])
+    #run('nodetool -h %s setcachecapacity -- 256 40960 50' % state.env['host'])
+
+    #conf = '/etc/cassandra/cassandra.yaml'
+    #sudo('sed -i "s|# commitlog_sync: batch|commitlog_sync: batch # changed|g" %s' % conf)
+    #sudo('sed -i "s|# commitlog_sync_batch_window_in_ms: 50|commitlog_sync_batch_window_in_ms: 1 # changed|g" %s' % conf)
+    #sudo('sed -i "s|commitlog_sync: periodic|#commitlog_sync: periodic # changed|g" %s' % conf)
+    #sudo('sed -i "s|commitlog_sync_period_in_ms: 10000|#commitlog_sync_period_in_ms: 10000 # changed|g" %s' % conf)
+
+    run('nodetool -h %s setcachecapacity -- 128 512 50' % state.env['host'])
 
 
 @task

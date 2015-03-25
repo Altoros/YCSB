@@ -15,7 +15,7 @@ CASSANDRA_CONF=${CASSANDRA_CONF_DIR}/cassandra.yaml
 CASSANDRA_ENV_CONF=${CASSANDRA_CONF_DIR}/cassandra-env.sh
 CASSANDRA_DATA_DIR=/var/cassandra-data
 CASSANDRA_COMMITLOG_DIR=/disk1/cassandra-commitlog
-SEEDS="192.155.206.162"
+SEEDS="50.23.195.162"
 
 declare -A PUBLIC_TO_LOCAL_ADDRESSES
 PUBLIC_TO_LOCAL_ADDRESSES['192.155.206.162']="192.155.206.162"
@@ -28,7 +28,10 @@ PUBLIC_ADDRESS_TO_TOKEN['192.155.206.163']="-3074457345618258603"
 PUBLIC_ADDRESS_TO_TOKEN['50.23.195.162']="3074457345618258602"
 
 
-rm -fR /var/log/cassandra/*
+rm -fr /var/log/cassandra/*
+rm -r /var/lib/cassandra/commitlog/*
+rm -r /var/lib/cassandra/data/*
+rm -r /var/lib/cassandra/saved_caches/*
 
 
 echo "$script_name: Create/clear $CASSANDRA_COMMITLOG_DIR"
@@ -38,7 +41,7 @@ if [ -z "$CASSANDRA_COMMITLOG_DIR" ]; then
 fi
 
 mkdir -p ${CASSANDRA_COMMITLOG_DIR}
-rm -fR ${CASSANDRA_COMMITLOG_DIR}/*
+rm -fr ${CASSANDRA_COMMITLOG_DIR}/*
 chown cassandra:cassandra ${CASSANDRA_COMMITLOG_DIR}
 
 echo "$script_name: Create/clear $CASSANDRA_DATA_DIR"
@@ -48,7 +51,7 @@ if [ -z "$CASSANDRA_DATA_DIR" ]; then
 fi
 
 mkdir -p ${CASSANDRA_DATA_DIR}
-rm -fR ${CASSANDRA_DATA_DIR}/*
+rm -fr ${CASSANDRA_DATA_DIR}/*
 chown cassandra:cassandra ${CASSANDRA_DATA_DIR}
 
 
@@ -66,14 +69,14 @@ sed -i "s|rpc_address: localhost|rpc_address: $CURRENT_HOST_ADDR ${CHANGE_MARK}|
 
 #sed -i "s|key_cache_size_in_mb:|key_cache_size_in_mb: 128 ${CHANGE_MARK}|g" ${CASSANDRA_CONF}
 #sed -i "s|row_cache_size_in_mb: 0|row_cache_size_in_mb: 10240 ${CHANGE_MARK}|g" ${CASSANDRA_CONF}
-sed -i "s|concurrent_reads: 32|concurrent_reads: 16 ${CHANGE_MARK}|g" ${CASSANDRA_CONF}
-sed -i "s|concurrent_writes: 32|concurrent_writes: 512 ${CHANGE_MARK}|g" ${CASSANDRA_CONF}
+sed -i "s|concurrent_reads: 32|concurrent_reads: 24 ${CHANGE_MARK}|g" ${CASSANDRA_CONF}
+sed -i "s|concurrent_writes: 32|concurrent_writes: 192 ${CHANGE_MARK}|g" ${CASSANDRA_CONF}
 sed -i "s|memtable_allocation_type: heap_buffers|memtable_allocation_type: offheap_objects ${CHANGE_MARK}|g" ${CASSANDRA_CONF}
 sed -i "s|# memtable_heap_space_in_mb: 2048|memtable_heap_space_in_mb: 2048 ${CHANGE_MARK}|g" ${CASSANDRA_CONF}
-sed -i "s|# memtable_offheap_space_in_mb: 2048|memtable_offheap_space_in_mb: 10240 ${CHANGE_MARK}|g" ${CASSANDRA_CONF}
-sed -i "s|#memtable_flush_writers: 8|memtable_flush_writers: 16 ${CHANGE_MARK}|g" ${CASSANDRA_CONF}
+sed -i "s|# memtable_offheap_space_in_mb: 2048|memtable_offheap_space_in_mb: 20480 ${CHANGE_MARK}|g" ${CASSANDRA_CONF}
+sed -i "s|#memtable_flush_writers: 8|memtable_flush_writers: 24 ${CHANGE_MARK}|g" ${CASSANDRA_CONF}
 sed -i "s|# native_transport_max_threads: 128|native_transport_max_threads: 99000000 ${CHANGE_MARK}|g" ${CASSANDRA_CONF}
-sed -i "s|#concurrent_compactors: 1|concurrent_compactors: 16 ${CHANGE_MARK}|g" ${CASSANDRA_CONF}
+sed -i "s|#concurrent_compactors: 1|concurrent_compactors: 24 ${CHANGE_MARK}|g" ${CASSANDRA_CONF}
 sed -i "s|compaction_throughput_mb_per_sec: 16|compaction_throughput_mb_per_sec: 64 ${CHANGE_MARK}|g" ${CASSANDRA_CONF}
 sed -i "s|# memtable_cleanup_threshold: 0.11|memtable_cleanup_threshold: 0.24 ${CHANGE_MARK}|g" ${CASSANDRA_CONF}
 sed -i "s|write_request_timeout_in_ms: 2000|write_request_timeout_in_ms: 180000 ${CHANGE_MARK}|g" ${CASSANDRA_CONF}
@@ -86,6 +89,32 @@ sed -i "s|trickle_fsync: false|trickle_fsync: true ${CHANGE_MARK}|g" ${CASSANDRA
 #sed -i "s|commitlog_sync_period_in_ms: 10000|#commitlog_sync_period_in_ms: 10000 ${CHANGE_MARK}|g" ${CASSANDRA_CONF}
 
 echo "$script_name: Change ${CASSANDRA_ENV_CONF} settings"
-sed -i "s|#MAX_HEAP_SIZE=\"4G\"|MAX_HEAP_SIZE=\"8G\" ${CHANGE_MARK}|g" ${CASSANDRA_ENV_CONF}
-sed -i "s|#HEAP_NEWSIZE=\"800M\"|HEAP_NEWSIZE=\"1600M\" ${CHANGE_MARK}|g" ${CASSANDRA_ENV_CONF}
+echo -e '# OptionPlaceholder 0' >> ${CASSANDRA_ENV_CONF}
+echo -e '# OptionPlaceholder 1' >> ${CASSANDRA_ENV_CONF}
+echo -e '# OptionPlaceholder 2' >> ${CASSANDRA_ENV_CONF}
+echo -e '# OptionPlaceholder 3' >> ${CASSANDRA_ENV_CONF}
+echo -e '# OptionPlaceholder 4' >> ${CASSANDRA_ENV_CONF}
+echo -e '# OptionPlaceholder 5' >> ${CASSANDRA_ENV_CONF}
+echo -e '# OptionPlaceholder 6' >> ${CASSANDRA_ENV_CONF}
+echo -e '# OptionPlaceholder 7' >> ${CASSANDRA_ENV_CONF}
+echo -e '# OptionPlaceholder 8' >> ${CASSANDRA_ENV_CONF}
+
 sed -i "s|JVM_OPTS=\"\$JVM_OPTS -ea\"|JVM_OPTS=\"\$JVM_OPTS -da\" ${CHANGE_MARK}|g" ${CASSANDRA_ENV_CONF}
+
+# https://issues.apache.org/jira/browse/CASSANDRA-8150
+sed -i "s|#MAX_HEAP_SIZE=\"4G\"|MAX_HEAP_SIZE=\"20G\" ${CHANGE_MARK}|g" ${CASSANDRA_ENV_CONF}
+sed -i "s|#HEAP_NEWSIZE=\"800M\"|HEAP_NEWSIZE=\"3G\" ${CHANGE_MARK}|g" ${CASSANDRA_ENV_CONF}
+
+sed -i "s|JVM_OPTS=\"\$JVM_OPTS -XX:MaxTenuringThreshold=1\"|JVM_OPTS=\"\$JVM_OPTS -XX:MaxTenuringThreshold=6\"|g" ${CASSANDRA_ENV_CONF}
+
+sed -i "s|# OptionPlaceholder 0|JVM_OPTS=\"\$JVM_OPTS -XX:ParallelGCThreads=20\"|g" ${CASSANDRA_ENV_CONF}
+sed -i "s|# OptionPlaceholder 1|JVM_OPTS=\"\$JVM_OPTS -XX:ConcGCThreads=20\"|g" ${CASSANDRA_ENV_CONF}
+
+sed -i "s|# OptionPlaceholder 2|JVM_OPTS=\"\$JVM_OPTS -XX:+CMSScavengeBeforeRemark\"|g" ${CASSANDRA_ENV_CONF}
+sed -i "s|# OptionPlaceholder 3|JVM_OPTS=\"\$JVM_OPTS -XX:CMSMaxAbortablePrecleanTime=60000\"|g" ${CASSANDRA_ENV_CONF}
+sed -i "s|# OptionPlaceholder 4|JVM_OPTS=\"\$JVM_OPTS -XX:CMSWaitDuration=30000\"|g" ${CASSANDRA_ENV_CONF}
+
+sed -i "s|# OptionPlaceholder 5|JVM_OPTS=\"\$JVM_OPTS -XX:+UnlockDiagnosticVMOptions\"|g" ${CASSANDRA_ENV_CONF}
+sed -i "s|# OptionPlaceholder 6|JVM_OPTS=\"\$JVM_OPTS -XX:+UseGCTaskAffinity\"|g" ${CASSANDRA_ENV_CONF}
+sed -i "s|# OptionPlaceholder 7|JVM_OPTS=\"\$JVM_OPTS -XX:+BindGCTaskThreadsToCPUs\"|g" ${CASSANDRA_ENV_CONF}
+sed -i "s|# OptionPlaceholder 8|JVM_OPTS=\"\$JVM_OPTS -XX:ParGCCardsPerStrideChunk=32768\"|g" ${CASSANDRA_ENV_CONF}
