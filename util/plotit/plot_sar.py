@@ -250,13 +250,23 @@ def plot_disks_stats(params):
 
 
 def plot_stats(params):
+    systems = {
+        'cpu': plot_cpu_stats,
+        'ram': plot_ram_stats,
+        'net': plot_network_stats,
+        'que': plot_queue_stats,
+        'dsk': plot_disks_stats
+    }
+
+    systems_to_plot = []
+    if params.plots:
+       systems_to_plot = params.plots.split(',')
+
     procs = []
 
-    procs.extend(plot_cpu_stats(params))
-    procs.extend(plot_ram_stats(params))
-    procs.extend(plot_network_stats(params))
-    procs.extend(plot_queue_stats(params))
-    procs.extend(plot_disks_stats(params))
+    for system, plot_fn in systems.items():
+        if not systems_to_plot or system in systems_to_plot:
+            procs.extend(plot_fn(params))
 
     for proc in procs:
         join_proc(proc)
@@ -268,6 +278,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(usage=__doc__)
     parser.add_argument('--sar_log', type=str, required=True, help='SAR log filename')
     parser.add_argument('--disks', type=str, help='Disks devices names (separated by comma) to plot')
+    parser.add_argument('--plots', type=str, help='Systems (separated by comma) to plot. Possible values: cpu, ram, dsk, net, que')
     args = parser.parse_args()
 
     return_code = plot_stats(args)
