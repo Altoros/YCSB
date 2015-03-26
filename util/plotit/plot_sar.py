@@ -10,6 +10,18 @@ from matplotlib import pyplot as plt
 from matplotlib.widgets import CheckButtons
 
 
+COLORS = ['#008000',  # green
+          '#000000',  # black
+          '#0033FF',  # blue
+          '#9933CC',  # purple
+          '#FF3366',  # red
+          '#FF6600',  # orange
+          '#8B4513',  # saddle brown
+          '#008080',  # teal
+          '#EE82EE',  # violet
+          '#6A5ACD']  # slate blue
+
+
 def fork_plot(plot_fn, fn_args):
     proc = Process(None, target=plot_fn, args=fn_args)
     proc.start()
@@ -21,18 +33,48 @@ def join_proc(proc):
         proc.join()
 
 
+class MetricUnit(object):
+
+    def __init__(self, name, converter):
+        self._name = name
+        self._converter = converter
+
+    @property
+    def name(self):
+        return self._name
+
+    @property
+    def converter(self):
+        return self._converter
+
+
+class MetricInfo(object):
+
+    def __init__(self, name, unit):
+        self._name = name
+        self._unit = unit
+
+    @property
+    def name(self):
+        return self._name
+
+    @property
+    def unit(self):
+        return self._unit
+
+
 class SarLogSerializer(object):
 
     def __init__(self, stats_src):
         self._stats_src = stats_src
 
-    def _get_metric_names(self):
+    def get_metrics_to_plot(self):
         raise NotImplementedError('Please Implement this method')
 
     def _get_sar_system_flag(self):
         raise NotImplementedError('Please Implement this method')
 
-    def _read_sar_binary_data(self):
+    def _read_sar_statistics(self):
         cmd = 'sadf -d %s -- %s' % (self._stats_src, self._get_sar_system_flag())
 
         p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
@@ -41,21 +83,23 @@ class SarLogSerializer(object):
         return output
 
     def deserialize(self):
-        data = self._read_sar_binary_data().splitlines()
+        data = self._read_sar_statistics().splitlines()
 
         stats = {}
-        metric_names = data[0].strip().split(';')
+        all_metric_names = data[0].strip().split(';')
+        metrics_to_plot = self.get_metrics_to_plot().keys()
 
-        for metric_name in metric_names:
-            if metric_name in self._get_metric_names():
+        for metric_name in all_metric_names:
+            if metric_name in metrics_to_plot:
                 stats[metric_name] = []
 
         for metrics_str in data[1:]:
             metrics = metrics_str.split(';')
 
-            for (metric_name, metric) in zip(metric_names, metrics):
-                if metric_name in self._get_metric_names():
-                    metric = metric.replace(',', '.')
+            for (metric_name, metric_str) in zip(all_metric_names, metrics):
+                if metric_name in metrics_to_plot:
+                    metric = float(metric_str.replace(',', '.'))
+                    metric = self.get_metrics_to_plot()[metric_name].unit.converter(metric)
                     stats[metric_name].append(metric)
 
         return stats
@@ -69,8 +113,15 @@ class CpuSarLogSerializer(SarLogSerializer):
     def _get_sar_system_flag(self):
         return '-u'
 
-    def _get_metric_names(self):
-        return ['%user', '%nice', '%system', '%iowait']
+    def get_metrics_to_plot(self):
+        percents = MetricUnit('percents', lambda unit: unit)
+
+        return {
+            '%user': MetricInfo('user', percents),
+            '%nice': MetricInfo('nice', percents),
+            '%system': MetricInfo('system', percents),
+            '%iowait': MetricInfo('iowait', percents)
+        }
 
 
 class RamSarLogSerializer(SarLogSerializer):
@@ -81,25 +132,22 @@ class RamSarLogSerializer(SarLogSerializer):
     def _get_sar_system_flag(self):
         return '-r'
 
-    def _get_metric_names(self):
-        return ['kbmemfree', 'kbmemused', 'kbbuffers', 'kbcached', 'kbcommit',
-                'kbactive', 'kbinact', 'kbdirty', '%memused', '%commit']
+    def get_metrics_to_plot(self):
+        megabyte = MetricUnit('MB', lambda kb: kb/1024)
+        percents = MetricUnit('percents', lambda unit: unit)
 
-    def deserialize(self):
-        stats = super(RamSarLogSerializer, self).deserialize()
-
-        ram_stats = {
-            'absolute': {},
-            'percents': {}
+        return {
+            'kbmemfree': MetricInfo('memfree', megabyte),
+            'kbmemused': MetricInfo('memused', megabyte),
+            'kbbuffers': MetricInfo('buffers', megabyte),
+            'kbcached': MetricInfo('cached', megabyte),
+            'kbcommit': MetricInfo('commit', megabyte),
+            'kbactive': MetricInfo('active', megabyte),
+            'kbinact': MetricInfo('inact', megabyte),
+            'kbdirty': MetricInfo('dirty', megabyte),
+            '%memused': MetricInfo('memused', percents),
+            '%commit': MetricInfo('commit', percents)
         }
-
-        for (k, v) in stats.items():
-            if k.startswith('%'):
-                ram_stats['percents'][k] = v
-            else:
-                ram_stats['absolute'][k] = v
-
-        return ram_stats
 
 
 class NetworkSarLogSerializer(SarLogSerializer):
@@ -110,8 +158,15 @@ class NetworkSarLogSerializer(SarLogSerializer):
     def _get_sar_system_flag(self):
         return '-n DEV'
 
-    def _get_metric_names(self):
-        return ['rxkB/s', 'txkB/s', '%ifutil']
+    def get_metrics_to_plot(self):
+        megabyte = MetricUnit('MB/s', lambda kb: kb/1000)
+        percents = MetricUnit('percents', lambda unit: unit)
+
+        return {
+            'rxkB/s': MetricInfo('received per sec', megabyte),
+            'txkB/s': MetricInfo('transmitted per sec', megabyte),
+            '%ifutil': MetricInfo('ifutil', percents)
+        }
 
 
 class QueueSarLogSerializer(SarLogSerializer):
@@ -122,8 +177,13 @@ class QueueSarLogSerializer(SarLogSerializer):
     def _get_sar_system_flag(self):
         return '-q'
 
-    def _get_metric_names(self):
-        return ['runq-sz', 'plist-sz', 'blocked']
+    def get_metrics_to_plot(self):
+        tasks = MetricUnit('number of tasks', lambda num: num)
+        return {
+            'runq-sz': MetricInfo('queue length', tasks),
+            'plist-sz': MetricInfo('task list', tasks),
+            'blocked': MetricInfo('blocked', tasks)
+        }
 
 
 class DisksSarLogSerializer(SarLogSerializer):
@@ -135,14 +195,36 @@ class DisksSarLogSerializer(SarLogSerializer):
     def _get_sar_system_flag(self):
         return '-b' if self._all_disks else '-d -p'
 
-    def _get_metric_names(self):
-        for_all = ['tps', 'rtps', 'wtps', 'bread/s', 'bwrtn/s']
-        for_dev = ['tps', 'rd_sec/s', 'wr_sec/s', 'avgrq-sz', 'avgqu-sz', 'await', 'svctm', '%util']
+    def get_metrics_to_plot(self):
+        noop = lambda num: num
+        block_to_mb = lambda bl: (bl*512)/1000/1000
+
+        transfers_unit = MetricUnit('transfers/s', noop)
+        block_to_mb_per_sec_unit = MetricUnit('MB/s', block_to_mb)
+        block_to_mb_unit = MetricUnit('MB', block_to_mb)
+
+        for_all = {
+            'tps': MetricInfo('transfers num/s', transfers_unit),
+            'rtps': MetricInfo('reads num/s', MetricUnit('reads/s', noop)),
+            'wtps': MetricInfo('writes num/s', MetricUnit('writes/s', noop)),
+            'bread/s': MetricInfo('read/s', block_to_mb_per_sec_unit),
+            'bwrtn/s': MetricInfo('write/s', block_to_mb_per_sec_unit)
+        }
+
+        for_dev = {
+            'tps': MetricInfo('transfers num/s', transfers_unit),
+            'rd_sec/s': MetricInfo('read/s', block_to_mb_per_sec_unit),
+            'wr_sec/s': MetricInfo('write/s', block_to_mb_per_sec_unit),
+            'avgrq-sz': MetricInfo('average req size', block_to_mb_unit),
+            'avgqu-sz': MetricInfo('average queue size', MetricUnit('req num', noop)),
+            'await': MetricInfo('await', MetricUnit('ms', noop)),
+            '%util': MetricInfo('util', MetricUnit('percents', noop))
+        }
 
         return for_all if self._all_disks else for_dev
 
     def _disks_deserialize(self):
-        data = self._read_sar_binary_data().splitlines()
+        data = self._read_sar_statistics().splitlines()
 
         stats = {}
         metric_names = data[0].strip().split(';')
@@ -155,12 +237,14 @@ class DisksSarLogSerializer(SarLogSerializer):
             if not stats.get(dev_name):
                 stats[dev_name] = {}
 
-            for (metric_name, metric) in zip(metric_names, metrics):
-                if metric_name in self._get_metric_names():
+            for (metric_name, metric_str) in zip(metric_names, metrics):
+                if metric_name in self.get_metrics_to_plot():
                     if not stats[dev_name].get(metric_name):
                         stats[dev_name][metric_name] = []
 
-                    metric = metric.replace(',', '.')
+                    metric = float(metric_str.replace(',', '.'))
+                    metric = self.get_metrics_to_plot()[metric_name].unit.converter(metric)
+
                     stats[dev_name][metric_name].append(metric)
 
         return stats
@@ -172,34 +256,50 @@ class DisksSarLogSerializer(SarLogSerializer):
             return self._disks_deserialize()
 
 
-def plot_any_system_stats(stats, plot_title):
-    stats_names = list(stats.keys())
+def plot_any_system_stats(stats, metrics_to_plot, plot_title):
+    def rearrange_subplots(axes):
+        for i, ax in enumerate(axes):
+            ax.change_geometry(len(axes), 1, i)
 
-    time = range( len(stats[stats.keys()[0]]) )
+    def get_show_hide_fn(figure, axes, ax_name_to_index):
+        visible_axes = list(axes)
 
-    def get_show_hide_fn(stats_lines):
         def fn(checkbox_label):
-            line = stats_lines[checkbox_label]
-            line.set_visible(not line.get_visible())
-            plt.draw()
+            ax = axes[ax_name_to_index[checkbox_label]]
+            ax.set_visible(not ax.get_visible())
+
+            if not ax.get_visible():
+                visible_axes.remove(ax)
+            else:
+                visible_axes.append(ax)
+
+            rearrange_subplots(visible_axes)
+
+            figure.canvas.draw()
 
         return fn
 
     def do_plot():
-        fig, ax = plt.subplots()
-        fig.canvas.set_window_title(plot_title)
-        plt.xlabel('time (sec)')
+        subplots_count = len(stats)
 
-        stats_lines = {}
-        for key in stats.keys():
-            l, = ax.plot(time, stats[key], label=key, lw=1)
-            stats_lines[key] = l
+        fig, axarr = plt.subplots(subplots_count)
+        fig.canvas.set_window_title(plot_title)
+
+        time = range( len(stats[stats.keys()[0]]) )
+        axes_by_names = {}
+
+        for i, key in enumerate(stats.keys()):
+            axarr[i].plot(time, stats[key], label=metrics_to_plot[key].name, lw=1, color=COLORS[i])
+            axarr[i].set_xlabel('time (sec)')
+            axarr[i].set_ylabel(metrics_to_plot[key].unit.name)
+            axarr[i].legend()
+            axes_by_names[key] = i
+
 
         rax = plt.axes([0.01, 0.8, 0.1, 0.1])
-        check = CheckButtons(rax, stats_names, [True] * len(stats_names))
-        check.on_clicked(get_show_hide_fn(stats_lines))
+        check_btns = CheckButtons(rax, stats.keys(), [True] * subplots_count)
+        check_btns.on_clicked(get_show_hide_fn(fig, axarr, axes_by_names))
 
-        ax.legend()
         plt.subplots_adjust(left=0.2)
         plt.show()
 
@@ -208,27 +308,26 @@ def plot_any_system_stats(stats, plot_title):
 
 def plot_cpu_stats(params):
     serializer = CpuSarLogSerializer(params.sar_log)
-    return [fork_plot(plot_any_system_stats, (serializer.deserialize(), 'CPU activity (all cores)'))]
+    fork_args = (serializer.deserialize(), serializer.get_metrics_to_plot(), 'CPU activity (all cores)')
+    return [fork_plot(plot_any_system_stats, fork_args)]
 
 
 def plot_ram_stats(params):
     serializer = RamSarLogSerializer(params.sar_log)
-    stats = serializer.deserialize()
-
-    proc1 = fork_plot(plot_any_system_stats, (stats['absolute'], 'Memory activity (kilobytes)'))
-    proc2 = fork_plot(plot_any_system_stats, (stats['percents'], 'Memory activity (percents)'))
-
-    return [proc1, proc2]
+    fork_args = (serializer.deserialize(), serializer.get_metrics_to_plot(), 'Memory activity')
+    return [fork_plot(plot_any_system_stats, fork_args)]
 
 
 def plot_network_stats(params):
     serializer = NetworkSarLogSerializer(params.sar_log)
-    return [fork_plot(plot_any_system_stats, (serializer.deserialize(), 'Network activity'))]
+    fork_args = (serializer.deserialize(), serializer.get_metrics_to_plot(), 'Network activity')
+    return [fork_plot(plot_any_system_stats, fork_args)]
 
 
 def plot_queue_stats(params):
     serializer = QueueSarLogSerializer(params.sar_log)
-    return [fork_plot(plot_any_system_stats, (serializer.deserialize(), 'Queue activity'))]
+    fork_args = (serializer.deserialize(), serializer.get_metrics_to_plot(), 'Queue activity')
+    return [fork_plot(plot_any_system_stats, fork_args)]
 
 
 def plot_disks_stats(params):
@@ -241,10 +340,12 @@ def plot_disks_stats(params):
 
     procs = []
     if not disks:
-        procs.append(fork_plot(plot_any_system_stats, (stats, 'All disks activity')))
+        fork_args = (stats, serializer.get_metrics_to_plot(), 'All disks activity')
+        procs.append(fork_plot(plot_any_system_stats, fork_args))
     else:
         for disk_name in disks:
-            procs.append(fork_plot(plot_any_system_stats, (stats[disk_name], 'Disk [%s] activity' % disk_name)))
+            fork_args = (stats[disk_name], serializer.get_metrics_to_plot(), 'Disk [%s] activity' % disk_name)
+            procs.append(fork_plot(plot_any_system_stats, fork_args))
 
     return procs
 
@@ -283,4 +384,3 @@ if __name__ == '__main__':
 
     return_code = plot_stats(args)
     sys.exit(return_code)
-
