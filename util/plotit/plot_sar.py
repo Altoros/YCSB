@@ -22,17 +22,6 @@ COLORS = ['#008000',  # green
           '#6A5ACD']  # slate blue
 
 
-def fork_plot(plot_fn, fn_args):
-    proc = Process(None, target=plot_fn, args=fn_args)
-    proc.start()
-    return proc
-
-
-def join_proc(proc):
-    if proc:
-        proc.join()
-
-
 class MetricUnit(object):
 
     def __init__(self, name, converter):
@@ -63,7 +52,7 @@ class MetricInfo(object):
         return self._unit
 
 
-class SarLogSerializer(object):
+class SarLogStatistics(object):
 
     def __init__(self, stats_src):
         self._stats_src = stats_src
@@ -82,33 +71,46 @@ class SarLogSerializer(object):
 
         return output
 
-    def deserialize(self):
+    def _stream_metrics(self):
         data = self._read_sar_statistics().splitlines()
 
+        header = data[0].strip().split(';')
+
+        for row in data[1:]:
+            metrics = row.split(';')
+            yield zip(header, metrics)
+
+
+    def _skip(self, metrics):
+        return False
+
+
+    def deserialize(self):
         stats = {}
-        all_metric_names = data[0].strip().split(';')
         metrics_to_plot = self.get_metrics_to_plot().keys()
 
-        for metric_name in all_metric_names:
-            if metric_name in metrics_to_plot:
-                stats[metric_name] = []
+        for metrics in self._stream_metrics():
+            if self._skip(metrics):
+                continue
 
-        for metrics_str in data[1:]:
-            metrics = metrics_str.split(';')
+            for (metric_name, metric_str) in metrics:
+                if metric_name not in metrics_to_plot:
+                    continue
 
-            for (metric_name, metric_str) in zip(all_metric_names, metrics):
-                if metric_name in metrics_to_plot:
-                    metric = float(metric_str.replace(',', '.'))
-                    metric = self.get_metrics_to_plot()[metric_name].unit.converter(metric)
-                    stats[metric_name].append(metric)
+                if not stats.get(metric_name):
+                    stats[metric_name] = []
+
+                metric = float(metric_str.replace(',', '.'))
+                metric = self.get_metrics_to_plot()[metric_name].unit.converter(metric)
+                stats[metric_name].append(metric)
 
         return stats
 
 
-class CpuSarLogSerializer(SarLogSerializer):
+class CpuSarLogStatistics(SarLogStatistics):
 
     def __init__(self, stats_src):
-        SarLogSerializer.__init__(self, stats_src)
+        SarLogStatistics.__init__(self, stats_src)
 
     def _get_sar_system_flag(self):
         return '-u'
@@ -124,10 +126,10 @@ class CpuSarLogSerializer(SarLogSerializer):
         }
 
 
-class RamSarLogSerializer(SarLogSerializer):
+class RamSarLogStatistics(SarLogStatistics):
 
     def __init__(self, stats_src):
-        SarLogSerializer.__init__(self, stats_src)
+        SarLogStatistics.__init__(self, stats_src)
 
     def _get_sar_system_flag(self):
         return '-r'
@@ -150,10 +152,10 @@ class RamSarLogSerializer(SarLogSerializer):
         }
 
 
-class NetworkSarLogSerializer(SarLogSerializer):
+class NetworkSarLogStatistics(SarLogStatistics):
 
     def __init__(self, stats_src):
-        SarLogSerializer.__init__(self, stats_src)
+        SarLogStatistics.__init__(self, stats_src)
 
     def _get_sar_system_flag(self):
         return '-n DEV'
@@ -169,10 +171,10 @@ class NetworkSarLogSerializer(SarLogSerializer):
         }
 
 
-class QueueSarLogSerializer(SarLogSerializer):
+class QueueSarLogStatistics(SarLogStatistics):
 
     def __init__(self, stats_src):
-        SarLogSerializer.__init__(self, stats_src)
+        SarLogStatistics.__init__(self, stats_src)
 
     def _get_sar_system_flag(self):
         return '-q'
@@ -186,14 +188,14 @@ class QueueSarLogSerializer(SarLogSerializer):
         }
 
 
-class DisksSarLogSerializer(SarLogSerializer):
+class DisksSarLogStatistics(SarLogStatistics):
 
-    def __init__(self, stats_src, all_disks=False):
-        SarLogSerializer.__init__(self, stats_src)
-        self._all_disks = all_disks
+    def __init__(self, stats_src, disk=None):
+        SarLogStatistics.__init__(self, stats_src)
+        self._disk = disk
 
     def _get_sar_system_flag(self):
-        return '-b' if self._all_disks else '-d -p'
+        return '-d -p' if self._disk else '-b'
 
     def get_metrics_to_plot(self):
         noop = lambda num: num
@@ -221,47 +223,28 @@ class DisksSarLogSerializer(SarLogSerializer):
             '%util': MetricInfo('util', MetricUnit('percents', noop))
         }
 
-        return for_all if self._all_disks else for_dev
+        return for_dev if self._disk else for_all
 
-    def _disks_deserialize(self):
-        data = self._read_sar_statistics().splitlines()
-
-        stats = {}
-        metric_names = data[0].strip().split(';')
-        dev_col_index = metric_names.index('DEV')
-
-        for metrics_str in data[1:]:
-            metrics = metrics_str.split(';')
-            dev_name = metrics[dev_col_index]
-
-            if not stats.get(dev_name):
-                stats[dev_name] = {}
-
-            for (metric_name, metric_str) in zip(metric_names, metrics):
-                if metric_name in self.get_metrics_to_plot():
-                    if not stats[dev_name].get(metric_name):
-                        stats[dev_name][metric_name] = []
-
-                    metric = float(metric_str.replace(',', '.'))
-                    metric = self.get_metrics_to_plot()[metric_name].unit.converter(metric)
-
-                    stats[dev_name][metric_name].append(metric)
-
-        return stats
-
-    def deserialize(self):
-        if self._all_disks:
-            return super(DisksSarLogSerializer, self).deserialize()
+    def _skip(self, metrics):
+        if self._disk:
+            return dict(metrics).get('DEV') != self._disk
         else:
-            return self._disks_deserialize()
+            False
 
 
-def plot_any_system_stats(stats, metrics_to_plot, plot_title):
-    def rearrange_subplots(axes):
+class StatisticsPlotter(Process):
+
+    def __init__(self, statistics=None, plot_title='Any statistics'):
+        super(StatisticsPlotter, self).__init__()
+
+        self._statistics = statistics
+        self._plot_title = plot_title
+
+    def _rearrange_subplots(self, axes):
         for i, ax in enumerate(axes):
             ax.change_geometry(len(axes), 1, i)
 
-    def get_show_hide_fn(figure, axes, ax_name_to_index):
+    def _get_show_hide_fn(self, figure, axes, ax_name_to_index):
         visible_axes = list(axes)
 
         def fn(checkbox_label):
@@ -273,19 +256,21 @@ def plot_any_system_stats(stats, metrics_to_plot, plot_title):
             else:
                 visible_axes.append(ax)
 
-            rearrange_subplots(visible_axes)
+            self._rearrange_subplots(visible_axes)
 
             figure.canvas.draw()
 
         return fn
 
-    def do_plot():
+    def _do_plot(self):
+        stats = self._statistics.deserialize()
+        metrics_to_plot = self._statistics.get_metrics_to_plot()
         subplots_count = len(stats)
 
         fig, axarr = plt.subplots(subplots_count)
-        fig.canvas.set_window_title(plot_title)
+        fig.canvas.set_window_title(self._plot_title)
 
-        time = range( len(stats[stats.keys()[0]]) )
+        time = range(len(stats[stats.keys()[0]]))
         axes_by_names = {}
 
         for i, key in enumerate(stats.keys()):
@@ -298,36 +283,37 @@ def plot_any_system_stats(stats, metrics_to_plot, plot_title):
 
         rax = plt.axes([0.01, 0.8, 0.1, 0.1])
         check_btns = CheckButtons(rax, stats.keys(), [True] * subplots_count)
-        check_btns.on_clicked(get_show_hide_fn(fig, axarr, axes_by_names))
+        check_btns.on_clicked(self._get_show_hide_fn(fig, axarr, axes_by_names))
 
         plt.subplots_adjust(left=0.2)
         plt.show()
 
-    do_plot()
+    def run(self):
+        self._do_plot()
 
 
 def plot_cpu_stats(params):
-    serializer = CpuSarLogSerializer(params.sar_log)
-    fork_args = (serializer.deserialize(), serializer.get_metrics_to_plot(), 'CPU activity (all cores)')
-    return [fork_plot(plot_any_system_stats, fork_args)]
+    proc = StatisticsPlotter(CpuSarLogStatistics(params.sar_log), 'CPU activity (all cores)')
+    proc.start()
+    return [proc]
 
 
 def plot_ram_stats(params):
-    serializer = RamSarLogSerializer(params.sar_log)
-    fork_args = (serializer.deserialize(), serializer.get_metrics_to_plot(), 'Memory activity')
-    return [fork_plot(plot_any_system_stats, fork_args)]
+    proc = StatisticsPlotter(RamSarLogStatistics(params.sar_log), 'Memory activity')
+    proc.start()
+    return [proc]
 
 
 def plot_network_stats(params):
-    serializer = NetworkSarLogSerializer(params.sar_log)
-    fork_args = (serializer.deserialize(), serializer.get_metrics_to_plot(), 'Network activity')
-    return [fork_plot(plot_any_system_stats, fork_args)]
+    proc = StatisticsPlotter(NetworkSarLogStatistics(params.sar_log), 'Network activity')
+    proc.start()
+    return [proc]
 
 
 def plot_queue_stats(params):
-    serializer = QueueSarLogSerializer(params.sar_log)
-    fork_args = (serializer.deserialize(), serializer.get_metrics_to_plot(), 'Queue activity')
-    return [fork_plot(plot_any_system_stats, fork_args)]
+    proc = StatisticsPlotter(QueueSarLogStatistics(params.sar_log), 'Queue activity')
+    proc.start()
+    return [proc]
 
 
 def plot_disks_stats(params):
@@ -335,19 +321,18 @@ def plot_disks_stats(params):
     if params.disks:
         disks = params.disks.split(',')
 
-    serializer = DisksSarLogSerializer(params.sar_log, not disks)
-    stats = serializer.deserialize()
-
-    procs = []
     if not disks:
-        fork_args = (stats, serializer.get_metrics_to_plot(), 'All disks activity')
-        procs.append(fork_plot(plot_any_system_stats, fork_args))
+        proc = StatisticsPlotter(DisksSarLogStatistics(params.sar_log), 'All disks activity')
+        proc.start()
+        return [proc]
     else:
+        procs = []
         for disk_name in disks:
-            fork_args = (stats[disk_name], serializer.get_metrics_to_plot(), 'Disk [%s] activity' % disk_name)
-            procs.append(fork_plot(plot_any_system_stats, fork_args))
+            proc = StatisticsPlotter(DisksSarLogStatistics(params.sar_log, disk_name), 'Disk [%s] activity' % disk_name)
+            proc.start()
+            procs.append(proc)
 
-    return procs
+        return procs
 
 
 def plot_stats(params):
@@ -370,7 +355,7 @@ def plot_stats(params):
             procs.extend(plot_fn(params))
 
     for proc in procs:
-        join_proc(proc)
+        proc.join()
 
     return 0
 
