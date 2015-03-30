@@ -92,8 +92,8 @@ def _virgin_servers_for_all():
 @parallel
 @roles('servers')
 def _virgin_servers_for_mongodb():
-    sudo('blockdev --setra 32 /dev/sda6')
-    sudo('blockdev --setra 32 /dev/sdb1')
+    sudo('blockdev --setra 0 /dev/sda6')
+    sudo('blockdev --setra 0 /dev/sdb1')
     sudo('rm -f /disk1/mongodb-logs/*.log')
     sudo('service mongod-rs0 start')
     sudo('service mongod-rs1 start')
