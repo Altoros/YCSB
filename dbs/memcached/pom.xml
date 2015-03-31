@@ -8,14 +8,14 @@
     <parent>
         <groupId>com.yahoo.ycsb</groupId>
         <artifactId>ycsb-parent-pom</artifactId>
-        <version>0.1.4</version>
+        <version>0.1.5</version>
         <relativePath>../../ycsb-parent-pom/pom.xml</relativePath>
     </parent>
 
     <artifactId>memcached</artifactId>
 	<packaging>jar</packaging>
-    <version>0.1.4</version>
     <name>YCSB Memcached Binding</name>
+    <version>0.1.5</version>
 
     <repositories>
         <repository>

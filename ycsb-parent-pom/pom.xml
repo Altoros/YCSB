@@ -7,7 +7,7 @@
     <groupId>com.yahoo.ycsb</groupId>
     <artifactId>ycsb-parent-pom</artifactId>
     <packaging>pom</packaging>
-    <version>0.1.4</version>
+    <version>0.1.5</version>
 
     <name>YCSB Parent pom with main settings</name>
 
