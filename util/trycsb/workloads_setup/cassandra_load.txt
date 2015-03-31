@@ -1,0 +1,36 @@
+CREATE KEYSPACE ks_load WITH REPLICATION = {'class' : 'SimpleStrategy', 'replication_factor': 2 };
+
+CREATE TABLE ks_load.test_table (
+   y_id varchar primary key,
+   field0 blob,
+   field1 blob,
+   field2 blob,
+   field3 blob,
+   field4 blob,
+   field5 blob,
+   field6 blob,
+   field7 blob,
+   field8 blob,
+   field9 blob
+);
+
+ALTER KEYSPACE ks_load WITH DURABLE_WRITES = false;
+ALTER KEYSPACE system_traces WITH DURABLE_WRITES = false;
+
+SELECT * FROM system.schema_keyspaces;
+
+
+===
+
+
+CREATE KEYSPACE ks_load WITH REPLICATION = {'class' : 'SimpleStrategy', 'replication_factor': 2 };
+
+CREATE TABLE ks_load.test_table (
+   y_id varchar primary key,
+   field0 blob
+);
+
+ALTER KEYSPACE ks_load WITH DURABLE_WRITES = false;
+ALTER KEYSPACE system_traces WITH DURABLE_WRITES = false;
+
+SELECT * FROM system.schema_keyspaces;
