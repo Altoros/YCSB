@@ -293,6 +293,7 @@ def _do_rm_mongodb_data():
     sudo("rm -rf /disk1/mongodb-data/db/rs0/*")
     sudo("rm -rf /disk1/mongodb-data/db/rs1/*")
     sudo("rm -rf /disk1/mongodb-conf/*")
+    sudo("rm -rf /mongodb-journal/*")
 
 @task
 def mongodb_copy_logs():

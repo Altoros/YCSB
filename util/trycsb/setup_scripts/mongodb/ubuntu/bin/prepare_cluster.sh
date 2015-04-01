@@ -9,6 +9,7 @@ CURRENT_HOST_ADDR=$1
 MONGODB_DATA=/disk1/mongodb-data
 MONGODB_LOGS=/disk1/mongodb-logs
 MONGODB_CONF_DIR=/disk1/mongodb-conf
+MONGODB_JOURNAL_DIR=/mongodb-journal
 
 MONGOD_UPSTART_SOURCE=conf/upstart.conf
 MONGOD_UPSTART_TARGET=/etc/init/mongod-rs
@@ -21,6 +22,7 @@ SHARDS['192.155.206.163']="shard21-mongod.yaml shard22-mongod.yaml"
 mkdir -p $MONGODB_CONF_DIR
 mkdir -p $MONGODB_DATA
 mkdir -p $MONGODB_LOGS
+mkdir -p $MONGODB_JOURNAL_DIR
 
 IFS=" "
 read -a MONGODS <<< ${SHARDS[$CURRENT_HOST_ADDR]}
@@ -29,8 +31,12 @@ REPLICA_SET_INDEX=0
 for MONGOD in ${MONGODS[*]}
 do
     echo "prepare a replica set #" $REPLICA_SET_INDEX
-    mkdir -p $MONGODB_DATA/db/rs$REPLICA_SET_INDEX
+    replica_set_path=$MONGODB_DATA/db/rs$REPLICA_SET_INDEX
+    mkdir -p $replica_set_path
     cp conf/$MONGOD $MONGODB_CONF_DIR
+    echo "link journal on external drive"
+    mkdir -p $MONGODB_JOURNAL_DIR/rs$REPLICA_SET_INDEX/journal
+    ln -s $MONGODB_JOURNAL_DIR/rs$REPLICA_SET_INDEX/journal $replica_set_path/journal
     # overwrite default upstart script
     cp $MONGOD_UPSTART_SOURCE $MONGOD_UPSTART_TARGET$REPLICA_SET_INDEX.conf
     sed -i "s|CONF=\/etc\/mongod.conf|CONF=$MONGODB_CONF_DIR\/$MONGOD|g" $MONGOD_UPSTART_TARGET$REPLICA_SET_INDEX.conf
@@ -46,6 +52,7 @@ sed -i "s|CONF=\/etc\/mongod.conf|CONF=$MONGODB_CONF_DIR\/mongod-config.yaml|g" 
 chown -R mongodb:mongodb $MONGODB_DATA
 chown -R mongodb:mongodb $MONGODB_CONF_DIR
 chown -R mongodb:mongodb $MONGODB_LOGS
+chown -R mongodb:mongodb $MONGODB_JOURNAL_DIR
 
 
 
