@@ -154,8 +154,9 @@ class RamSarLogStatistics(SarLogStatistics):
 
 class NetworkSarLogStatistics(SarLogStatistics):
 
-    def __init__(self, stats_src):
+    def __init__(self, stats_src, iface=None):
         SarLogStatistics.__init__(self, stats_src)
+        self._iface = iface
 
     def _get_sar_system_flag(self):
         return '-n DEV'
@@ -169,6 +170,12 @@ class NetworkSarLogStatistics(SarLogStatistics):
             'txkB/s': MetricInfo('transmitted per sec', megabyte),
             '%ifutil': MetricInfo('ifutil', percents)
         }
+
+    def _skip(self, metrics):
+        if self._iface:
+            return dict(metrics).get('IFACE') != self._iface
+        else:
+            return False
 
 
 class QueueSarLogStatistics(SarLogStatistics):
@@ -229,7 +236,7 @@ class DisksSarLogStatistics(SarLogStatistics):
         if self._disk:
             return dict(metrics).get('DEV') != self._disk
         else:
-            False
+            return False
 
 
 class StatisticsPlotter(Process):
@@ -305,9 +312,17 @@ def plot_ram_stats(params):
 
 
 def plot_network_stats(params):
-    proc = StatisticsPlotter(NetworkSarLogStatistics(params.sar_log), 'Network activity')
-    proc.start()
-    return [proc]
+    ifaces = []
+    if params.iface:
+        ifaces = params.iface.split(',')
+
+    procs = []
+    for iface in ifaces:
+        proc = StatisticsPlotter(NetworkSarLogStatistics(params.sar_log, iface), 'Network [%s] activity' % iface)
+        proc.start()
+        procs.append(proc)
+
+    return procs
 
 
 def plot_queue_stats(params):
@@ -363,8 +378,9 @@ def plot_stats(params):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(usage=__doc__)
     parser.add_argument('--sar_log', type=str, required=True, help='SAR log filename')
-    parser.add_argument('--disks', type=str, help='Disks devices names (separated by comma) to plot')
     parser.add_argument('--plots', type=str, help='Systems (separated by comma) to plot. Possible values: cpu, ram, dsk, net, que')
+    parser.add_argument('--disks', type=str, help='Disks devices names (separated by comma) to plot')
+    parser.add_argument('--iface', type=str, help='Network interfaces (separated by comma) to plot. Used with net plot')
     args = parser.parse_args()
 
     return_code = plot_stats(args)
