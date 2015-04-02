@@ -21,9 +21,6 @@ apt-get install -y --force-yes dsc21
 #apt-get install -y --force-yes opscenter
 #apt-get install -y --force-yes datastax-agent
 
-echo "$script_name: Stopping Cassandra"
-service cassandra stop
-
 echo "$script_name: Backup original conf"
 if [ -z "$CASSANDRA_CONF_BACKUP_DIR" ]; then
     echo "Cassandra confs backup dir unspecified"
