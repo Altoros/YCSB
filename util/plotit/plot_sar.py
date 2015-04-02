@@ -80,7 +80,6 @@ class SarLogStatistics(object):
             metrics = row.split(';')
             yield zip(header, metrics)
 
-
     def _skip(self, metrics):
         return False
 
@@ -312,12 +311,8 @@ def plot_ram_stats(params):
 
 
 def plot_network_stats(params):
-    ifaces = []
-    if params.iface:
-        ifaces = params.iface.split(',')
-
     procs = []
-    for iface in ifaces:
+    for iface in params.iface:
         proc = StatisticsPlotter(NetworkSarLogStatistics(params.sar_log, iface), 'Network [%s] activity' % iface)
         proc.start()
         procs.append(proc)
@@ -332,17 +327,13 @@ def plot_queue_stats(params):
 
 
 def plot_disks_stats(params):
-    disks = []
-    if params.disks:
-        disks = params.disks.split(',')
-
-    if not disks:
+    if not params.disks:
         proc = StatisticsPlotter(DisksSarLogStatistics(params.sar_log), 'All disks activity')
         proc.start()
         return [proc]
     else:
         procs = []
-        for disk_name in disks:
+        for disk_name in params.disks:
             proc = StatisticsPlotter(DisksSarLogStatistics(params.sar_log, disk_name), 'Disk [%s] activity' % disk_name)
             proc.start()
             procs.append(proc)
@@ -359,14 +350,10 @@ def plot_stats(params):
         'dsk': plot_disks_stats
     }
 
-    systems_to_plot = []
-    if params.plots:
-       systems_to_plot = params.plots.split(',')
-
     procs = []
 
     for system, plot_fn in systems.items():
-        if not systems_to_plot or system in systems_to_plot:
+        if system in params.plots:
             procs.extend(plot_fn(params))
 
     for proc in procs:
@@ -375,13 +362,25 @@ def plot_stats(params):
     return 0
 
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser(usage=__doc__)
-    parser.add_argument('--sar_log', type=str, required=True, help='SAR log filename')
-    parser.add_argument('--plots', type=str, help='Systems (separated by comma) to plot. Possible values: cpu, ram, dsk, net, que')
-    parser.add_argument('--disks', type=str, help='Disks devices names (separated by comma) to plot')
-    parser.add_argument('--iface', type=str, help='Network interfaces (separated by comma) to plot. Used with net plot')
-    args = parser.parse_args()
+class ListAction(argparse.Action):
+    def __init__(self, option_strings, dest, nargs=None, **kwargs):
+        super(ListAction, self).__init__(option_strings, dest, **kwargs)
 
-    return_code = plot_stats(args)
+    def __call__(self, parser, namespace, values, option_string=None):
+        val_list = []
+        if values:
+            val_list = values.split(',')
+
+        setattr(namespace, self.dest, val_list)
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(prog='sr. PLOT SAR', usage=__doc__)
+    parser.add_argument('--version', action='version', version='%(prog)s 1.0')
+    parser.add_argument('--sar_log', type=str, help='SAR log filename')
+    parser.add_argument('--plots', action=ListAction, help='Systems (separated by comma) to plot. Possible values: cpu, ram, dsk, net, que')
+    parser.add_argument('--disks', action=ListAction, help='Disks devices names (separated by comma) to plot')
+    parser.add_argument('--iface', action=ListAction, help='Network interfaces (separated by comma) to plot. Used with net plot')
+
+    return_code = plot_stats(parser.parse_args())
     sys.exit(return_code)
