@@ -1,5 +1,4 @@
-"""
-
+""" Plots statictics collected by sar.
 """
 import argparse
 import sys
@@ -10,6 +9,7 @@ from matplotlib import pyplot as plt
 from matplotlib.widgets import CheckButtons
 
 
+# Add more colors to plot more than one figure in one window
 COLORS = ['#008000',  # green
           '#000000',  # black
           '#0033FF',  # blue
@@ -273,6 +273,9 @@ class StatisticsPlotter(Process):
         metrics_to_plot = self._statistics.get_metrics_to_plot()
         subplots_count = len(stats)
 
+        if not subplots_count:
+            return
+
         fig, axarr = plt.subplots(subplots_count)
         fig.canvas.set_window_title(self._plot_title)
 
@@ -285,7 +288,6 @@ class StatisticsPlotter(Process):
             axarr[i].set_ylabel(metrics_to_plot[key].unit.name)
             axarr[i].legend()
             axes_by_names[key] = i
-
 
         rax = plt.axes([0.01, 0.8, 0.1, 0.1])
         check_btns = CheckButtons(rax, stats.keys(), [True] * subplots_count)
@@ -353,7 +355,7 @@ def plot_stats(params):
     procs = []
 
     for system, plot_fn in systems.items():
-        if system in params.plots:
+        if not params.plots or system in params.plots:
             procs.extend(plot_fn(params))
 
     for proc in procs:
@@ -362,25 +364,13 @@ def plot_stats(params):
     return 0
 
 
-class ListAction(argparse.Action):
-    def __init__(self, option_strings, dest, nargs=None, **kwargs):
-        super(ListAction, self).__init__(option_strings, dest, **kwargs)
-
-    def __call__(self, parser, namespace, values, option_string=None):
-        val_list = []
-        if values:
-            val_list = values.split(',')
-
-        setattr(namespace, self.dest, val_list)
-
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(prog='sr. PLOT SAR', usage=__doc__)
-    parser.add_argument('--version', action='version', version='%(prog)s 1.0')
-    parser.add_argument('--sar_log', type=str, help='SAR log filename')
-    parser.add_argument('--plots', action=ListAction, help='Systems (separated by comma) to plot. Possible values: cpu, ram, dsk, net, que')
-    parser.add_argument('--disks', action=ListAction, help='Disks devices names (separated by comma) to plot')
-    parser.add_argument('--iface', action=ListAction, help='Network interfaces (separated by comma) to plot. Used with net plot')
+    parser.add_argument('-v', '--version', action='version', version='%(prog)s 1.0')
+    parser.add_argument('-s', '--sar_log', metavar='FILE', help='a sar log filename')
+    parser.add_argument('-p', '--plots', nargs='+', choices=['cpu', 'ram', 'net', 'que', 'dsk'], default=[], help='systems to plot')
+    parser.add_argument('-d', '--disks', nargs='+', metavar='DEV', default=[], help='disks names to plot')
+    parser.add_argument('-i', '--iface', nargs='+', metavar='IF', default=[], help='network interfaces to plot. Used with "net" plot')
 
     return_code = plot_stats(parser.parse_args())
     sys.exit(return_code)
