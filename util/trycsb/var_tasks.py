@@ -226,17 +226,21 @@ def _do_cassandra_copy_logs(workload_name, keyspace):
         cfstats_out = '%s__cfstats.txt' % prefix
         run('nodetool cfstats %s > %s' % (table, cfstats_out))
         get(cfstats_out)
+        run('rm ' + cfstats_out)
 
         tpstats_out = '%s__tpstats.txt' % prefix
         run('nodetool tpstats > %s' % tpstats_out)
         get(tpstats_out)
+        run('rm ' + tpstats_out)
 
         info_out = '%s__info.txt' % prefix
         run('nodetool info > %s' % info_out)
         get(info_out)
+        run('rm ' + info_out)
 
         system_out = tar(logs_dir, log,  '%s__%s.tar' % (prefix, log))
         get(system_out)
+        run('rm ' + system_out)
 
         cassandra_yaml = 'cassandra.yaml'
         cassandra_env = 'cassandra-env.sh'
@@ -258,13 +262,15 @@ def _do_cassandra_set_cache():
     #sudo('sed -i "s|native_transport_max_threads: 1024 # changed|native_transport_max_threads: 99000000 # changed|g" /etc/cassandra/cassandra.yaml')
     #run('nodetool -h %s setcachecapacity -- 256 40960 50' % state.env['host'])
 
-    #conf = '/etc/cassandra/cassandra.yaml'
+    conf = '/etc/cassandra/cassandra.yaml'
     #sudo('sed -i "s|# commitlog_sync: batch|commitlog_sync: batch # changed|g" %s' % conf)
     #sudo('sed -i "s|# commitlog_sync_batch_window_in_ms: 50|commitlog_sync_batch_window_in_ms: 1 # changed|g" %s' % conf)
     #sudo('sed -i "s|commitlog_sync: periodic|#commitlog_sync: periodic # changed|g" %s' % conf)
     #sudo('sed -i "s|commitlog_sync_period_in_ms: 10000|#commitlog_sync_period_in_ms: 10000 # changed|g" %s' % conf)
 
-    run('nodetool -h %s setcachecapacity -- 128 512 50' % state.env['host'])
+    sudo('sed -i "s|# memtable_cleanup_threshold: 0.05 # changed|memtable_cleanup_threshold: 0.01 # changed|g" %s' % conf)
+
+    #run('nodetool -h %s setcachecapacity -- 128 512 50' % state.env['host'])
 
 
 @task
