@@ -3,8 +3,8 @@ package com.yahoo.ycsb.couchbase;
 import com.yahoo.ycsb.config.PropertiesConfig;
 import com.yahoo.ycsb.memcached.MemcachedCompatibleConfig;
 import net.spy.memcached.FailureMode;
-import net.spy.memcached.PersistTo;
-import net.spy.memcached.ReplicateTo;
+import com.couchbase.client.java.PersistTo;
+import com.couchbase.client.java.ReplicateTo;
 
 import java.util.Properties;
 
@@ -52,7 +52,7 @@ public class CouchbaseConfig extends PropertiesConfig implements MemcachedCompat
     public static final PersistTo PERSIST_TO_PROPERTY_DEFAULT = PersistTo.MASTER;
 
     public static final String REPLICATE_TO_PROPERTY = "couchbase.replicateTo";
-    public static final ReplicateTo REPLICATE_TO_PROPERTY_DEFAULT = ReplicateTo.ZERO;
+    public static final ReplicateTo REPLICATE_TO_PROPERTY_DEFAULT = ReplicateTo.ONE;
 
     public CouchbaseConfig(Properties properties) {
         super(properties);

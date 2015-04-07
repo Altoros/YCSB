@@ -10,17 +10,13 @@ import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.DBException;
 import com.yahoo.ycsb.memcached.MemcachedCompatibleClient;
 import net.spy.memcached.MemcachedClient;
-import net.spy.memcached.PersistTo;
-import net.spy.memcached.ReplicateTo;
-import rx.Observable;
-import rx.functions.Func0;
-import rx.functions.Func1;
+import com.couchbase.client.java.PersistTo;
+import com.couchbase.client.java.ReplicateTo;
 
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Alexei Okhrimenko, 2015
@@ -59,7 +55,6 @@ public class CouchbaseClient extends MemcachedCompatibleClient {
         return BucketHolder.BUCKET;
     }
 
-
     @Override
     public void init() throws DBException {
         try {
@@ -80,13 +75,13 @@ public class CouchbaseClient extends MemcachedCompatibleClient {
     @Override
     public int read(String table, String key, Set<String> fields, Map<String, ByteIterator> result) {
         key = createQualifiedKey(table, key);
-        try {
-            defaultBucket.get(key);
+        JsonDocument document = defaultBucket.get(key);
+        if (document == null) {
+            System.err.println("Document not found!");
+        } else {
             return OK;
-        } catch (Exception e) {
-            e.printStackTrace();
-            return ERROR;
         }
+        return OK;
     }
 
     @Override
@@ -104,51 +99,19 @@ public class CouchbaseClient extends MemcachedCompatibleClient {
         key = createQualifiedKey(table, key);
         try {
             Iterator<Map.Entry<String, ByteIterator>> entries = values.entrySet().iterator();
+            JsonDocument loaded = defaultBucket.get(key);
             while (entries.hasNext()) {
                 final Map.Entry<String, ByteIterator> entry = entries.next();
-                final String k = entry.getKey();
-                final String v = entry.getValue().toString();
-                Observable<JsonDocument> loaded = defaultBucket.async().get(key);
                 if (loaded == null) {
                     System.err.println("Document not found!");
                 } else {
-                    final String finalKey = key;
-                    Observable.defer(new Func0<Observable<JsonDocument>>() {
-                        @Override
-                        public Observable<JsonDocument> call() {
-                            return defaultBucket.async().get(finalKey);
-                        }
-                    })
-                            .map(new Func1<JsonDocument, JsonDocument>() {
-                                @Override
-                                public JsonDocument call(JsonDocument document) {
-                                    document.content().put(k, v);
-                                    return document;
-                                }
-                            })
-                            .flatMap(new Func1<JsonDocument, Observable<JsonDocument>>() {
-                                @Override
-                                public Observable<JsonDocument> call(JsonDocument document) {
-                                    return defaultBucket.async().replace(document);
-                                }
-                            })
-                            .retryWhen(new Func1<Observable<? extends Throwable>, Observable<?>>() {
-                                           @Override
-                                           public Observable<?> call(Observable<? extends Throwable> attempts) {
-                                               return attempts.flatMap(new Func1<Throwable, Observable<? extends Long>>() {
-                                                   @Override
-                                                   public Observable<? extends Long> call(Throwable e) {
-                                                       if (!(e instanceof CASMismatchException)) {
-                                                           return Observable.error(e);
-                                                       }
-                                                       return Observable.timer(1, TimeUnit.MILLISECONDS);
-                                                   }
-                                               });
-                                           }
-                                       }
-                            )
-                            .subscribe();
+                    loaded.content().put(entry.getKey(), entry.getValue().toString());
                 }
+            }
+            try {
+                defaultBucket.replace(loaded, persistTo, replicateTo);
+            } catch (CASMismatchException e) {
+                System.err.println("replace failed: " + e.getCause());
             }
         } catch (Exception e) {
             e.printStackTrace();
