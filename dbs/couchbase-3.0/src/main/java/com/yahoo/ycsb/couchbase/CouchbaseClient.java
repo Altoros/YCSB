@@ -14,7 +14,6 @@ import com.couchbase.client.java.PersistTo;
 import com.couchbase.client.java.ReplicateTo;
 
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
@@ -98,35 +97,34 @@ public class CouchbaseClient extends MemcachedCompatibleClient {
 
     @Override
     public int update(String table, String key, Map<String, ByteIterator> values) {
-        key = createQualifiedKey(table, key);
         try {
-            Iterator<Map.Entry<String, ByteIterator>> entries = values.entrySet().iterator();
-            JsonDocument loaded = defaultBucket.get(key);
-            while (entries.hasNext()) {
-                final Map.Entry<String, ByteIterator> entry = entries.next();
-                if (loaded == null) {
-                    System.err.println("Document not found!");
-                } else {
-                    loaded.content().put(entry.getKey(), entry.getValue().toString());
-                }
-            }
-            try {
-                defaultBucket.replace(loaded, persistTo, replicateTo);
-            } catch (CASMismatchException e) {
-                System.err.println("replace failed: " + e.getCause());
-            }
-        } catch (Exception e) {
+            JsonDocument doc = defaultBucket.get(createQualifiedKey(table, key));
+
+            if (doc == null)
+                return ERROR;
+
+            for (String field : values.keySet())
+                doc.content().put(field, values.get(field).toString());
+
+            defaultBucket.replace(doc, persistTo, replicateTo);
+
+            return OK;
+        }
+        catch (CASMismatchException e) {
+            System.err.println("replace failed: " + e.getCause());
+            return OK;
+        }
+        catch (Exception e) {
             e.printStackTrace();
             return ERROR;
         }
-        return OK;
     }
 
     @Override
     public int insert(String table, String key, Map<String, ByteIterator> values) {
         JsonObject record = JsonObject.empty();
         for (String field : values.keySet())
-            record.put(field, values.get(field));
+            record.put(field, values.get(field).toString());
 
         JsonDocument document = JsonDocument.create(createQualifiedKey(table, key), objectExpirationTime, record);
         try {
