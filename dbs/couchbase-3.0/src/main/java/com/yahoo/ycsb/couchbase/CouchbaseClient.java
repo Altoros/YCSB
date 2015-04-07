@@ -6,16 +6,22 @@ import com.couchbase.client.java.CouchbaseCluster;
 import com.couchbase.client.java.document.JsonDocument;
 import com.couchbase.client.java.document.json.JsonObject;
 import com.couchbase.client.java.error.CASMismatchException;
+import com.couchbase.client.java.error.DocumentDoesNotExistException;
 import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.DBException;
 import com.yahoo.ycsb.memcached.MemcachedCompatibleClient;
 import net.spy.memcached.MemcachedClient;
 import com.couchbase.client.java.PersistTo;
 import com.couchbase.client.java.ReplicateTo;
+import rx.Observable;
+import rx.functions.Func0;
+import rx.functions.Func1;
 
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Alexei Okhrimenko, 2015
@@ -23,9 +29,7 @@ import java.util.Set;
  * this client uses Couchbase Java SDK 2.1.1 and supports Couchbase Server 3.0
  */
 public class CouchbaseClient extends MemcachedCompatibleClient {
-
     protected static CouchbaseConfig config;
-
     protected PersistTo persistTo;
     protected ReplicateTo replicateTo;
     protected Bucket defaultBucket;
@@ -97,27 +101,54 @@ public class CouchbaseClient extends MemcachedCompatibleClient {
 
     @Override
     public int update(String table, String key, Map<String, ByteIterator> values) {
+        key = createQualifiedKey(table, key);
         try {
-            JsonDocument doc = defaultBucket.get(createQualifiedKey(table, key));
+            final Iterator<Map.Entry<String, ByteIterator>> entries = values.entrySet().iterator();
+            final String keyCopy = key;
+            Observable.defer(new Func0<Observable<JsonDocument>>() {
+                @Override
+                public Observable<JsonDocument> call() {
+                    return defaultBucket.async().get(keyCopy);
+                }
+            }).map(new Func1<JsonDocument, JsonDocument>() {
+                @Override
+                public JsonDocument call(JsonDocument document) {
+                    if (document == null) {
+                        System.err.println("Document not found!");
+                        throw new DocumentDoesNotExistException();
+                    }
+                    while (entries.hasNext()) {
+                        final Map.Entry<String, ByteIterator> entry = entries.next();
+                        document.content().put(entry.getKey(), entry.getValue().toString());
+                    }
+                    return document;
+                }
+            }).flatMap(new Func1<JsonDocument, Observable<JsonDocument>>() {
+                @Override
+                public Observable<JsonDocument> call(JsonDocument document) {
+                    return defaultBucket.async().replace(document, persistTo, replicateTo);
+                }
+            }).retryWhen(new Func1<Observable<? extends Throwable>, Observable<Long>>() {
+                @Override
+                public Observable<Long> call(Observable<? extends Throwable> attempts) {
+                    return attempts.flatMap(new Func1<Throwable, Observable<Long>>() {
+                        @Override
+                        public Observable<Long> call(Throwable e) {
+                            if (!(e instanceof CASMismatchException)) {
+                                System.err.println("CAS exception: " + e.getMessage());
+                                return Observable.error(e);
+                            }
+                            return Observable.timer(1, TimeUnit.SECONDS);
+                        }
+                    });
+                }
+            }).subscribe();
 
-            if (doc == null)
-                return ERROR;
-
-            for (String field : values.keySet())
-                doc.content().put(field, values.get(field).toString());
-
-            defaultBucket.replace(doc, persistTo, replicateTo);
-
-            return OK;
-        }
-        catch (CASMismatchException e) {
-            System.err.println("replace failed: " + e.getCause());
-            return OK;
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
             return ERROR;
         }
+        return OK;
     }
 
     @Override
