@@ -24,7 +24,9 @@ import java.util.Set;
  * this client uses Couchbase Java SDK 2.1.1 and supports Couchbase Server 3.0
  */
 public class CouchbaseClient extends MemcachedCompatibleClient {
+
     protected static CouchbaseConfig config;
+
     protected PersistTo persistTo;
     protected ReplicateTo replicateTo;
     protected Bucket defaultBucket;
@@ -74,14 +76,14 @@ public class CouchbaseClient extends MemcachedCompatibleClient {
 
     @Override
     public int read(String table, String key, Set<String> fields, Map<String, ByteIterator> result) {
-        key = createQualifiedKey(table, key);
-        JsonDocument document = defaultBucket.get(key);
-        if (document == null) {
-            System.err.println("Document not found!");
-        } else {
-            return OK;
+        try {
+            JsonDocument doc = defaultBucket.get(createQualifiedKey(table, key));
+            return doc != null ? OK :ERROR;
         }
-        return OK;
+        catch (Exception e) {
+            e.printStackTrace();
+            return ERROR;
+        }
     }
 
     @Override
@@ -122,32 +124,28 @@ public class CouchbaseClient extends MemcachedCompatibleClient {
 
     @Override
     public int insert(String table, String key, Map<String, ByteIterator> values) {
-        JsonObject content;
-        key = createQualifiedKey(table, key);
-        try {
-            Iterator<Map.Entry<String, ByteIterator>> entries = values.entrySet().iterator();
-            content = JsonObject.empty();
-            while (entries.hasNext()) {
-                Map.Entry<String, ByteIterator> entry = entries.next();
-                content.put(entry.getKey(), entry.getValue().toString());
-            }
+        JsonObject record = JsonObject.empty();
+        for (String field : values.keySet())
+            record.put(field, values.get(field));
 
-        } catch (Exception e) {
+        JsonDocument document = JsonDocument.create(createQualifiedKey(table, key), objectExpirationTime, record);
+        try {
+            defaultBucket.insert(document);
+            return OK;
+        }
+        catch (Exception e) {
             e.printStackTrace();
             return ERROR;
         }
-        JsonDocument document = JsonDocument.create(key, objectExpirationTime, content);
-        defaultBucket.upsert(document);
-        return OK;
     }
 
     @Override
     public int delete(String table, String key) {
-        key = createQualifiedKey(table, key);
         try {
-            defaultBucket.remove(key);
+            defaultBucket.remove(createQualifiedKey(table, key));
             return OK;
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             e.printStackTrace();
             return ERROR;
         }
