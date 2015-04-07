@@ -20,7 +20,6 @@ package com.yahoo.ycsb.db;
 import com.datastax.driver.core.*;
 import com.datastax.driver.core.querybuilder.Insert;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
-import com.datastax.driver.core.querybuilder.Select;
 import com.yahoo.ycsb.*;
 import com.yahoo.ycsb.workloads.CoreWorkload;
 
@@ -186,7 +185,10 @@ public class CassandraCQLClient extends DB
         return so;
     }
 
-    private synchronized static void buildStatements(Properties p)
+    /**
+     * Has to be called only once
+     */
+    private static void buildStatements(Properties p)
     {
         buildDeleteStatement(p);
         buildInsertStatement(p);
@@ -197,9 +199,6 @@ public class CassandraCQLClient extends DB
 
     private static void buildInsertStatement(Properties p)
     {
-        if (insertStatement != null)
-            return;
-
         int fieldCount = Integer.parseInt(p.getProperty(CoreWorkload.FIELD_COUNT_PROPERTY, CoreWorkload.FIELD_COUNT_PROPERTY_DEFAULT));
         String fieldPrefix = p.getProperty(CoreWorkload.FIELD_NAME_PREFIX, CoreWorkload.FIELD_NAME_PREFIX_DEFAULT);
         String table = p.getProperty(CoreWorkload.TABLENAME_PROPERTY, CoreWorkload.TABLENAME_PROPERTY_DEFAULT);
@@ -215,9 +214,6 @@ public class CassandraCQLClient extends DB
 
     private static void buildUpdateStatements(Properties p)
     {
-        if (updateStatements != null)
-            return;
-
         int fieldCount = Integer.parseInt(p.getProperty(CoreWorkload.FIELD_COUNT_PROPERTY, CoreWorkload.FIELD_COUNT_PROPERTY_DEFAULT));
         String fieldPrefix = p.getProperty(CoreWorkload.FIELD_NAME_PREFIX, CoreWorkload.FIELD_NAME_PREFIX_DEFAULT);
         String table = p.getProperty(CoreWorkload.TABLENAME_PROPERTY, CoreWorkload.TABLENAME_PROPERTY_DEFAULT);
@@ -244,9 +240,6 @@ public class CassandraCQLClient extends DB
 
     private static void buildDeleteStatement(Properties p)
     {
-        if (deleteStatement != null)
-            return;
-
         String table = p.getProperty(CoreWorkload.TABLENAME_PROPERTY, CoreWorkload.TABLENAME_PROPERTY_DEFAULT);
 
         deleteStatement = session.prepare(QueryBuilder.delete().from(table).where(QueryBuilder.eq(YCSB_KEY, QueryBuilder.bindMarker())));
@@ -259,23 +252,27 @@ public class CassandraCQLClient extends DB
         String fieldPrefix = p.getProperty(CoreWorkload.FIELD_NAME_PREFIX, CoreWorkload.FIELD_NAME_PREFIX_DEFAULT);
         String table = p.getProperty(CoreWorkload.TABLENAME_PROPERTY, CoreWorkload.TABLENAME_PROPERTY_DEFAULT);
 
-        if (selectStatement == null)
-        {
-            String ss = QueryBuilder.select().all().from(table).where(QueryBuilder.eq(YCSB_KEY, QueryBuilder.bindMarker())).getQueryString();
-            selectStatement = session.prepare(ss);
-            selectStatement.setConsistencyLevel(readConsistencyLevel);
-        }
+        String ss = QueryBuilder.select()
+                                .all()
+                                .from(table)
+                                .where(QueryBuilder.eq(YCSB_KEY, QueryBuilder.bindMarker()))
+                                .getQueryString();
 
-        if (selectStatements == null)
+        selectStatement = session.prepare(ss);
+        selectStatement.setConsistencyLevel(readConsistencyLevel);
+
+        selectStatements = new ConcurrentHashMap<>(fieldCount);
+        for (int i = 0; i < fieldCount; i++)
         {
-            selectStatements = new ConcurrentHashMap<>(fieldCount);
-            for (int i = 0; i < fieldCount; i++)
-            {
-                Select ss = QueryBuilder.select(fieldPrefix + i).from(table).where(QueryBuilder.eq(YCSB_KEY, QueryBuilder.bindMarker())).limit(1);
-                PreparedStatement ps = session.prepare(ss);
-                ps.setConsistencyLevel(readConsistencyLevel);
-                selectStatements.put(fieldPrefix + i, ps);
-            }
+            ss = QueryBuilder.select(fieldPrefix + i)
+                             .from(table)
+                             .where(QueryBuilder.eq(YCSB_KEY, QueryBuilder.bindMarker()))
+                             .limit(1)
+                             .getQueryString();
+
+            PreparedStatement ps = session.prepare(ss);
+            ps.setConsistencyLevel(readConsistencyLevel);
+            selectStatements.put(fieldPrefix + i, ps);
         }
     }
 
@@ -285,25 +282,19 @@ public class CassandraCQLClient extends DB
         String fieldPrefix = p.getProperty(CoreWorkload.FIELD_NAME_PREFIX, CoreWorkload.FIELD_NAME_PREFIX_DEFAULT);
         String table = p.getProperty(CoreWorkload.TABLENAME_PROPERTY, CoreWorkload.TABLENAME_PROPERTY_DEFAULT);
 
-        if (scanStatement == null)
-        {
-            String initialStmt = QueryBuilder.select().all().from(table).toString();
-            String scanStmt = getScanQueryString().replaceFirst("_", initialStmt.substring(0, initialStmt.length()-1));
-            scanStatement = session.prepare(scanStmt);
-            scanStatement.setConsistencyLevel(readConsistencyLevel);
-        }
+        String initialStmt = QueryBuilder.select().all().from(table).toString();
+        String scanStmt = getScanQueryString().replaceFirst("_", initialStmt.substring(0, initialStmt.length()-1));
+        scanStatement = session.prepare(scanStmt);
+        scanStatement.setConsistencyLevel(readConsistencyLevel);
 
-        if (scanStatements == null)
+        scanStatements = new ConcurrentHashMap<>(fieldCount);
+        for (int i = 0; i < fieldCount; i++)
         {
-            scanStatements = new ConcurrentHashMap<>(fieldCount);
-            for (int i = 0; i < fieldCount; i++)
-            {
-                String initialStmt = QueryBuilder.select(fieldPrefix + i).from(table).toString();
-                String scanStmt = getScanQueryString().replaceFirst("_", initialStmt.substring(0, initialStmt.length()-1));
-                PreparedStatement ps = session.prepare(scanStmt);
-                ps.setConsistencyLevel(readConsistencyLevel);
-                scanStatements.put(fieldPrefix + i, ps);
-            }
+            initialStmt = QueryBuilder.select(fieldPrefix + i).from(table).toString();
+            scanStmt = getScanQueryString().replaceFirst("_", initialStmt.substring(0, initialStmt.length()-1));
+            PreparedStatement ps = session.prepare(scanStmt);
+            ps.setConsistencyLevel(readConsistencyLevel);
+            scanStatements.put(fieldPrefix + i, ps);
         }
     }
 
