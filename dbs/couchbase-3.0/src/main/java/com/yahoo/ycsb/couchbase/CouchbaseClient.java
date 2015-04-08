@@ -14,7 +14,14 @@ import net.spy.memcached.MemcachedClient;
 import com.couchbase.client.java.PersistTo;
 import com.couchbase.client.java.ReplicateTo;
 
+import rx.Observable;
+import rx.functions.Action1;
+import rx.functions.Func0;
+import rx.functions.Func1;
+
 import java.util.*;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 /**
  * This client uses Couchbase Java SDK 2.1.1 and supports Couchbase Server 3.0
@@ -95,6 +102,13 @@ public class CouchbaseClient extends MemcachedCompatibleClient {
 
     @Override
     public int update(String table, String key, Map<String, ByteIterator> values) {
+        if (config.isAsyncUpdate())
+            return asyncUpdate(table, key, values);
+        else
+            return syncUpdate(table, key, values);
+    }
+
+    public int syncUpdate(String table, String key, Map<String, ByteIterator> values) {
         String qualifiedKey = createQualifiedKey(table, key);
 
         while (true) {
@@ -117,6 +131,62 @@ public class CouchbaseClient extends MemcachedCompatibleClient {
                 e.printStackTrace();
                 return ERROR;
             }
+        }
+    }
+
+    private int asyncUpdate(String table, String key, final Map<String, ByteIterator> values) {
+        final String qualifiedKey = createQualifiedKey(table, key);
+        final CountDownLatch latch = new CountDownLatch(1);
+
+        Observable
+                .defer(new Func0<Observable<JsonDocument>>() {
+                    @Override
+                    public Observable<JsonDocument> call() {
+                        return defaultBucket.async().get(qualifiedKey);
+                    }
+                })
+                .map(new Func1<JsonDocument, JsonDocument>() {
+                    @Override
+                    public JsonDocument call(JsonDocument doc) {
+                        for (Map.Entry<String, ByteIterator> field : values.entrySet())
+                            doc.content().put(field.getKey(), field.getValue().toString());
+                        return doc;
+                    }
+                })
+                .flatMap(new Func1<JsonDocument, Observable<?>>() {
+                    @Override
+                    public Observable<?> call(JsonDocument doc) {
+                        return defaultBucket.async().replace(doc);
+                    }
+                })
+                .retryWhen(new Func1<Observable<? extends Throwable>, Observable<?>>() {
+                       @Override
+                       public Observable<?> call(Observable<? extends Throwable> attempts) {
+                           return attempts.flatMap(new Func1<Throwable, Observable<?>>() {
+                               @Override
+                               public Observable<?> call(Throwable e) {
+                                   if (e instanceof CASMismatchException)
+                                       return Observable.timer(config.getConcurrentUpdateRetryTimeMillis(), TimeUnit.MILLISECONDS);
+                                   else
+                                       return Observable.error(e);
+                               }
+                           });
+                       }
+                   }
+                )
+                .subscribe(new Action1<Object>() {
+                    @Override
+                    public void call(Object jsonDocument) {
+                        latch.countDown();
+                    }
+                });
+
+        try {
+            latch.await();
+            return OK;
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+            return ERROR;
         }
     }
 

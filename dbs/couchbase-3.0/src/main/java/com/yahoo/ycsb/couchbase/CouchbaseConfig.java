@@ -50,6 +50,8 @@ public class CouchbaseConfig extends PropertiesConfig implements MemcachedCompat
 
     public static final String CONCURRENT_UPDATE_RETRY_TIME_MILLIS = "couchbase.concurrentUpdateRetryTimeMillis";
 
+    public static final String USE_ASYNC_UPDATE = "couchbase.asyncUpdate";
+
     public static final String PERSIST_TO_PROPERTY = "couchbase.persistTo";
     public static final PersistTo PERSIST_TO_PROPERTY_DEFAULT = PersistTo.MASTER;
 
@@ -57,6 +59,7 @@ public class CouchbaseConfig extends PropertiesConfig implements MemcachedCompat
     public static final ReplicateTo REPLICATE_TO_PROPERTY_DEFAULT = ReplicateTo.ONE;
 
     private long concurrentUpdateRetryTimeMillis = 5;
+    private boolean asyncUpdate = false;
 
     public CouchbaseConfig(Properties properties) {
         super(properties);
@@ -76,6 +79,10 @@ public class CouchbaseConfig extends PropertiesConfig implements MemcachedCompat
         Long concurrentUpdateRetryTimeMillis_tmp = getLong(CONCURRENT_UPDATE_RETRY_TIME_MILLIS);
         if (concurrentUpdateRetryTimeMillis_tmp != null)
             concurrentUpdateRetryTimeMillis = concurrentUpdateRetryTimeMillis_tmp;
+
+        Boolean asyncUpdate_tmp = getBoolean(USE_ASYNC_UPDATE);
+        if (asyncUpdate_tmp != null)
+            asyncUpdate = asyncUpdate_tmp;
     }
 
     @Override
@@ -86,6 +93,10 @@ public class CouchbaseConfig extends PropertiesConfig implements MemcachedCompat
 
     public long getConcurrentUpdateRetryTimeMillis() {
         return concurrentUpdateRetryTimeMillis;
+    }
+
+    public boolean isAsyncUpdate() {
+        return asyncUpdate;
     }
 
     public String getBucket() {
