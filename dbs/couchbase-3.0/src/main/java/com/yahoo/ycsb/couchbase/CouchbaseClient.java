@@ -135,51 +135,18 @@ public class CouchbaseClient extends MemcachedCompatibleClient {
     }
 
     private int asyncUpdate(String table, String key, final Map<String, ByteIterator> values) {
-        final String qualifiedKey = createQualifiedKey(table, key);
         final CountDownLatch latch = new CountDownLatch(1);
 
-        Observable
-                .defer(new Func0<Observable<JsonDocument>>() {
-                    @Override
-                    public Observable<JsonDocument> call() {
-                        return defaultBucket.async().get(qualifiedKey);
-                    }
-                })
-                .map(new Func1<JsonDocument, JsonDocument>() {
-                    @Override
-                    public JsonDocument call(JsonDocument doc) {
-                        for (Map.Entry<String, ByteIterator> field : values.entrySet())
-                            doc.content().put(field.getKey(), field.getValue().toString());
-                        return doc;
-                    }
-                })
-                .flatMap(new Func1<JsonDocument, Observable<?>>() {
-                    @Override
-                    public Observable<?> call(JsonDocument doc) {
-                        return defaultBucket.async().replace(doc);
-                    }
-                })
-                .retryWhen(new Func1<Observable<? extends Throwable>, Observable<?>>() {
-                       @Override
-                       public Observable<?> call(Observable<? extends Throwable> attempts) {
-                           return attempts.flatMap(new Func1<Throwable, Observable<?>>() {
-                               @Override
-                               public Observable<?> call(Throwable e) {
-                                   if (e instanceof CASMismatchException)
-                                       return Observable.timer(config.getConcurrentUpdateRetryTimeMillis(), TimeUnit.MILLISECONDS);
-                                   else
-                                       return Observable.error(e);
-                               }
-                           });
-                       }
-                   }
-                )
-                .subscribe(new Action1<Object>() {
-                    @Override
-                    public void call(Object jsonDocument) {
-                        latch.countDown();
-                    }
-                });
+        Observable.defer(getDocFunc(createQualifiedKey(table, key)))
+                  .map(updateDocFieldsFunc(values))
+                  .flatMap(replaceDocFunc())
+                  .retryWhen(retryPolicyFunc())
+                  .subscribe(new Action1<Object>() {
+                      @Override
+                      public void call(Object jsonDocument) {
+                          latch.countDown();
+                      }
+                  });
 
         try {
             latch.await();
@@ -188,6 +155,52 @@ public class CouchbaseClient extends MemcachedCompatibleClient {
             e.printStackTrace();
             return ERROR;
         }
+    }
+
+    private Func0<Observable<JsonDocument>> getDocFunc(final String key) {
+        return new Func0<Observable<JsonDocument>>() {
+            @Override
+            public Observable<JsonDocument> call() {
+                return defaultBucket.async().get(key);
+            }
+        };
+    }
+
+    private Func1<JsonDocument, Observable<?>> replaceDocFunc() {
+        return new Func1<JsonDocument, Observable<?>>() {
+            @Override
+            public Observable<?> call(JsonDocument doc) {
+                return defaultBucket.async().replace(doc);
+            }
+        };
+    }
+
+    private Func1<JsonDocument, JsonDocument> updateDocFieldsFunc(final Map<String, ByteIterator> values) {
+        return new Func1<JsonDocument, JsonDocument>() {
+            @Override
+            public JsonDocument call(JsonDocument doc) {
+                for (Map.Entry<String, ByteIterator> field : values.entrySet())
+                    doc.content().put(field.getKey(), field.getValue().toString());
+                return doc;
+            }
+        };
+    }
+
+    private Func1<Observable<? extends Throwable>, Observable<?>> retryPolicyFunc() {
+        return new Func1<Observable<? extends Throwable>, Observable<?>>() {
+            @Override
+            public Observable<?> call(Observable<? extends Throwable> attempts) {
+                return attempts.flatMap(new Func1<Throwable, Observable<?>>() {
+                    @Override
+                    public Observable<?> call(Throwable e) {
+                        if (e instanceof CASMismatchException)
+                            return Observable.timer(config.getConcurrentUpdateRetryTimeMillis(), TimeUnit.MILLISECONDS);
+                        else
+                            return Observable.error(e);
+                    }
+                });
+            }
+        };
     }
 
     @Override
