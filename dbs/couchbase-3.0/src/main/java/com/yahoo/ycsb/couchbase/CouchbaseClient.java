@@ -135,10 +135,10 @@ public class CouchbaseClient extends MemcachedCompatibleClient {
                         @Override
                         public Observable<Long> call(Throwable e) {
                             if (!(e instanceof CASMismatchException)) {
-                                System.err.println("CAS exception: " + e.getMessage());
                                 return Observable.error(e);
                             }
-                            return Observable.timer(1, TimeUnit.SECONDS);
+                            System.out.println("Retry update");
+                            return Observable.timer(50, TimeUnit.MILLISECONDS);
                         }
                     });
                 }
