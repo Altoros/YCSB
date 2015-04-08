@@ -117,6 +117,10 @@ class _ClientConfig():
         return self._cli_conf.get('workloads').get(self._base_conf.workload_name)
 
     @property
+    def workload_java_parameters(self):
+        return self.workload_parameters.get('java_properties')
+
+    @property
     def uploads(self):
         return self._cli_conf.get('uploads')
 

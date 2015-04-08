@@ -98,7 +98,7 @@ def _execute_workload(conf):
     ycsbexe  = conf.client_conf.ycsb_executable_name
     options  = _get_ycsb_options(conf)
     log_path = _get_workload_log_path(conf, _curr_host())
-    java_opts = '-Dcom.couchbase.computationPoolSize=32 -Dcom.couchbase.client.deps.io.netty.leakDetectionLevel=advanced'
+    java_opts = conf.client_conf.workload_java_parameters
 
     cmd = 'java %s -jar %s %s >%s 2>&1' % (java_opts, ycsbexe, options, log_path)
 

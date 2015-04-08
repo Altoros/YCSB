@@ -56,6 +56,9 @@ clients:
     workloads:
         # Any workload name.
         workloadA:
+            # Put here any java options and properties you need to pass to YCSB.
+            java_properties: [-Dany.property=cool]
+
             # Array of arguments.
             # These options are passed to ycsb cli args directly as they are
             # represented in array entries.
