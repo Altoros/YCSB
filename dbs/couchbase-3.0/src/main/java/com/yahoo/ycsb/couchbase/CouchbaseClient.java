@@ -5,7 +5,6 @@ import com.couchbase.client.java.Cluster;
 import com.couchbase.client.java.CouchbaseCluster;
 import com.couchbase.client.java.document.JsonDocument;
 import com.couchbase.client.java.document.json.JsonObject;
-import com.couchbase.client.java.error.CASMismatchException;
 import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.DBException;
 import com.yahoo.ycsb.StringByteIterator;
@@ -99,17 +98,20 @@ public class CouchbaseClient extends MemcachedCompatibleClient {
 
         while (true) {
             JsonDocument doc = defaultBucket.get(qualifiedKey);
+            long origCas = doc.cas();
 
             for (Map.Entry<String, ByteIterator> field : values.entrySet())
                 doc.content().put(field.getKey(), field.getValue().toString());
 
             try {
-                defaultBucket.replace(doc, persistTo, replicateTo);
-                return OK;
-            }
-            catch (CASMismatchException ce) {
-                incDocUpdateRace(key);
-                sleep(config.getConcurrentUpdateRetryTimeMillis());
+                JsonDocument origDoc = defaultBucket.upsert(doc, persistTo, replicateTo);
+
+                if (origCas != origDoc.cas()) {
+                    incDocUpdateRace(key);
+                    sleep(config.getConcurrentUpdateRetryTimeMillis());
+                }
+                else
+                    return OK;
             }
             catch (Exception e) {
                 e.printStackTrace();
