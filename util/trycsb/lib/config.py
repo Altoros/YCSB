@@ -118,7 +118,7 @@ class _ClientConfig():
 
     @property
     def workload_java_parameters(self):
-        return self.workload_parameters.get('java_properties')
+        return not_empty(self.workload_parameters.get('java_properties'), [])
 
     @property
     def uploads(self):
