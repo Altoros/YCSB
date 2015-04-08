@@ -14,7 +14,6 @@ CREATE TABLE ks_load_1.test_table (
    field9 blob
 );
 
-ALTER KEYSPACE ks_load_1 WITH DURABLE_WRITES = false;
 ALTER KEYSPACE system_traces WITH DURABLE_WRITES = false;
 
 SELECT * FROM system.schema_keyspaces;
