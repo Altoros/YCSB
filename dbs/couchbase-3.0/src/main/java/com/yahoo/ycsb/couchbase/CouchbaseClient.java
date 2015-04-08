@@ -36,8 +36,20 @@ public class CouchbaseClient extends MemcachedCompatibleClient {
     protected Bucket defaultBucket;
     protected Cluster cluster;
 
-    protected CouchbaseConfig createMemcachedConfig() {
-        return new CouchbaseConfig(getProperties());
+    private static class ClusterHolder {
+        public static final Cluster CLUSTER = CouchbaseCluster.create(config.getHosts());
+    }
+
+    private static Cluster getClusterInstance() {
+        return ClusterHolder.CLUSTER;
+    }
+
+    private static class BucketHolder {
+        public static final Bucket BUCKET = getClusterInstance().openBucket();
+    }
+
+    private static Bucket getBucketInstance() {
+        return BucketHolder.BUCKET;
     }
 
     @Override
@@ -45,26 +57,10 @@ public class CouchbaseClient extends MemcachedCompatibleClient {
         return null;
     }
 
-    public static class ClusterHolder {
-        public static final Cluster CLUSTER = CouchbaseCluster.create(config.getHosts());
-    }
-
-    public static Cluster getClusterInstance() {
-        return ClusterHolder.CLUSTER;
-    }
-
-    public static class BucketHolder {
-        public static final Bucket BUCKET = getClusterInstance().openBucket();
-    }
-
-    public static Bucket getBucketInstance() {
-        return BucketHolder.BUCKET;
-    }
-
     @Override
     public void init() throws DBException {
         try {
-            config = createMemcachedConfig();
+            config = new CouchbaseConfig(getProperties());
             persistTo = config.getPersistTo();
             replicateTo = config.getReplicateTo();
 
