@@ -20,8 +20,11 @@ import rx.functions.Func0;
 import rx.functions.Func1;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * This client uses Couchbase Java SDK 2.1.1 and supports Couchbase Server 3.0
@@ -35,6 +38,7 @@ public class CouchbaseClient extends MemcachedCompatibleClient {
     private Bucket defaultBucket;
 
     private Map<String, Integer> docUpdateRaces = new HashMap<>();
+    private ConcurrentHashMap<String, Lock> keyLocks = new ConcurrentHashMap<>();
 
     private static class ClusterHolder {
         public static final Cluster CLUSTER = CouchbaseCluster.create(config.getHosts());
@@ -109,6 +113,32 @@ public class CouchbaseClient extends MemcachedCompatibleClient {
     }
 
     public int syncUpdate(String table, String key, Map<String, ByteIterator> values) {
+        keyLocks.putIfAbsent(key, new ReentrantLock());
+        keyLocks.get(key).lock();
+
+        String qualifiedKey = createQualifiedKey(table, key);
+
+        JsonDocument doc = defaultBucket.get(qualifiedKey);
+        if (doc == null)
+            return ERROR;
+
+        for (Map.Entry<String, ByteIterator> field : values.entrySet())
+            doc.content().put(field.getKey(), field.getValue().toString());
+
+        try {
+            defaultBucket.upsert(doc, persistTo, replicateTo);
+            return OK;
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+            return ERROR;
+        }
+        finally {
+            keyLocks.get(key).unlock();
+        }
+    }
+
+    public int syncUpdateVer2(String table, String key, Map<String, ByteIterator> values) {
         String qualifiedKey = createQualifiedKey(table, key);
 
         while (true) {
