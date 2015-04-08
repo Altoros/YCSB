@@ -9,6 +9,7 @@ import com.couchbase.client.java.error.CASMismatchException;
 import com.couchbase.client.java.error.DocumentDoesNotExistException;
 import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.DBException;
+import com.yahoo.ycsb.StringByteIterator;
 import com.yahoo.ycsb.memcached.MemcachedCompatibleClient;
 import net.spy.memcached.MemcachedClient;
 import com.couchbase.client.java.PersistTo;
@@ -24,12 +25,12 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Alexei Okhrimenko, 2015
- *
- * this client uses Couchbase Java SDK 2.1.1 and supports Couchbase Server 3.0
+ * This client uses Couchbase Java SDK 2.1.1 and supports Couchbase Server 3.0
  */
 public class CouchbaseClient extends MemcachedCompatibleClient {
+
     protected static CouchbaseConfig config;
+
     protected PersistTo persistTo;
     protected ReplicateTo replicateTo;
     protected Bucket defaultBucket;
@@ -81,7 +82,14 @@ public class CouchbaseClient extends MemcachedCompatibleClient {
     public int read(String table, String key, Set<String> fields, Map<String, ByteIterator> result) {
         try {
             JsonDocument doc = defaultBucket.get(createQualifiedKey(table, key));
-            return doc != null ? OK :ERROR;
+
+            if (doc == null)
+                return ERROR;
+
+            for (String field : doc.content().getNames())
+                result.put(field, new StringByteIterator(doc.content().getString(field)));
+
+            return OK;
         }
         catch (Exception e) {
             e.printStackTrace();
@@ -159,7 +167,7 @@ public class CouchbaseClient extends MemcachedCompatibleClient {
 
         JsonDocument document = JsonDocument.create(createQualifiedKey(table, key), objectExpirationTime, record);
         try {
-            defaultBucket.insert(document);
+            defaultBucket.insert(document, persistTo, replicateTo);
             return OK;
         }
         catch (Exception e) {
@@ -171,7 +179,7 @@ public class CouchbaseClient extends MemcachedCompatibleClient {
     @Override
     public int delete(String table, String key) {
         try {
-            defaultBucket.remove(createQualifiedKey(table, key));
+            defaultBucket.remove(createQualifiedKey(table, key), persistTo, replicateTo);
             return OK;
         }
         catch (Exception e) {
