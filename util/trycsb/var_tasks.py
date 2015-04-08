@@ -226,21 +226,21 @@ def _do_cassandra_copy_logs(workload_name, keyspace):
         cfstats_out = '%s__cfstats.txt' % prefix
         run('nodetool cfstats %s > %s' % (table, cfstats_out))
         get(cfstats_out)
-        run('rm ' + cfstats_out)
+        run('rm -f ' + cfstats_out)
 
         tpstats_out = '%s__tpstats.txt' % prefix
         run('nodetool tpstats > %s' % tpstats_out)
         get(tpstats_out)
-        run('rm ' + tpstats_out)
+        run('rm -f ' + tpstats_out)
 
         info_out = '%s__info.txt' % prefix
         run('nodetool info > %s' % info_out)
         get(info_out)
-        run('rm ' + info_out)
+        run('rm -f ' + info_out)
 
         system_out = tar(logs_dir, log,  '%s__%s.tar' % (prefix, log))
         get(system_out)
-        run('rm ' + system_out)
+        run('rm -f ' + system_out)
 
         cassandra_yaml = 'cassandra.yaml'
         cassandra_env = 'cassandra-env.sh'
