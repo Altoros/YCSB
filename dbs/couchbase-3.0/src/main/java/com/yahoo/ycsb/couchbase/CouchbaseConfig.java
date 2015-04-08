@@ -48,11 +48,15 @@ public class CouchbaseConfig extends PropertiesConfig implements MemcachedCompat
 
     public static final String VIEWS_PROPERTY = "couchbase.views";
 
+    public static final String CONCURRENT_UPDATE_RETRY_TIME_MILLIS = "couchbase.concurrentUpdateRetryTimeMillis";
+
     public static final String PERSIST_TO_PROPERTY = "couchbase.persistTo";
     public static final PersistTo PERSIST_TO_PROPERTY_DEFAULT = PersistTo.MASTER;
 
     public static final String REPLICATE_TO_PROPERTY = "couchbase.replicateTo";
     public static final ReplicateTo REPLICATE_TO_PROPERTY_DEFAULT = ReplicateTo.ONE;
+
+    private long concurrentUpdateRetryTimeMillis = 5;
 
     public CouchbaseConfig(Properties properties) {
         super(properties);
@@ -68,12 +72,20 @@ public class CouchbaseConfig extends PropertiesConfig implements MemcachedCompat
         declareProperty(OBJECT_EXPIRATION_TIME_PROPERTY, DEFAULT_OBJECT_EXPIRATION_TIME);
         declareProperty(DDOCS_PROPERTY, false);
         declareProperty(VIEWS_PROPERTY, false);
+
+        Long concurrentUpdateRetryTimeMillis_tmp = getLong(CONCURRENT_UPDATE_RETRY_TIME_MILLIS);
+        if (concurrentUpdateRetryTimeMillis_tmp != null)
+            concurrentUpdateRetryTimeMillis = concurrentUpdateRetryTimeMillis_tmp;
     }
 
     @Override
     public String getHosts() {
         String host = getString(HOSTS_PROPERTY);
         return host;
+    }
+
+    public long getConcurrentUpdateRetryTimeMillis() {
+        return concurrentUpdateRetryTimeMillis;
     }
 
     public String getBucket() {

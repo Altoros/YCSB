@@ -6,7 +6,6 @@ import com.couchbase.client.java.CouchbaseCluster;
 import com.couchbase.client.java.document.JsonDocument;
 import com.couchbase.client.java.document.json.JsonObject;
 import com.couchbase.client.java.error.CASMismatchException;
-import com.couchbase.client.java.error.DocumentDoesNotExistException;
 import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.DBException;
 import com.yahoo.ycsb.StringByteIterator;
@@ -14,27 +13,21 @@ import com.yahoo.ycsb.memcached.MemcachedCompatibleClient;
 import net.spy.memcached.MemcachedClient;
 import com.couchbase.client.java.PersistTo;
 import com.couchbase.client.java.ReplicateTo;
-import rx.Observable;
-import rx.functions.Func0;
-import rx.functions.Func1;
 
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
+import java.util.*;
 
 /**
  * This client uses Couchbase Java SDK 2.1.1 and supports Couchbase Server 3.0
  */
 public class CouchbaseClient extends MemcachedCompatibleClient {
 
-    protected static CouchbaseConfig config;
+    private static CouchbaseConfig config;
 
-    protected PersistTo persistTo;
-    protected ReplicateTo replicateTo;
-    protected Bucket defaultBucket;
-    protected Cluster cluster;
+    private PersistTo persistTo;
+    private ReplicateTo replicateTo;
+    private Bucket defaultBucket;
+
+    private Map<String, Integer> docUpdateRaces = new HashMap<>();
 
     private static class ClusterHolder {
         public static final Cluster CLUSTER = CouchbaseCluster.create(config.getHosts());
@@ -63,9 +56,6 @@ public class CouchbaseClient extends MemcachedCompatibleClient {
             config = new CouchbaseConfig(getProperties());
             persistTo = config.getPersistTo();
             replicateTo = config.getReplicateTo();
-
-            // Connect to cluster
-            cluster = getClusterInstance();
 
             // Open the default bucket
             defaultBucket = getBucketInstance();
@@ -105,54 +95,27 @@ public class CouchbaseClient extends MemcachedCompatibleClient {
 
     @Override
     public int update(String table, String key, Map<String, ByteIterator> values) {
-        key = createQualifiedKey(table, key);
-        try {
-            final Iterator<Map.Entry<String, ByteIterator>> entries = values.entrySet().iterator();
-            final String keyCopy = key;
-            Observable.defer(new Func0<Observable<JsonDocument>>() {
-                @Override
-                public Observable<JsonDocument> call() {
-                    return defaultBucket.async().get(keyCopy);
-                }
-            }).map(new Func1<JsonDocument, JsonDocument>() {
-                @Override
-                public JsonDocument call(JsonDocument document) {
-                    if (document == null) {
-                        System.err.println("Document not found!");
-                        throw new DocumentDoesNotExistException();
-                    }
-                    while (entries.hasNext()) {
-                        final Map.Entry<String, ByteIterator> entry = entries.next();
-                        document.content().put(entry.getKey(), entry.getValue().toString());
-                    }
-                    return document;
-                }
-            }).flatMap(new Func1<JsonDocument, Observable<JsonDocument>>() {
-                @Override
-                public Observable<JsonDocument> call(JsonDocument document) {
-                    return defaultBucket.async().replace(document, persistTo, replicateTo);
-                }
-            }).retryWhen(new Func1<Observable<? extends Throwable>, Observable<Long>>() {
-                @Override
-                public Observable<Long> call(Observable<? extends Throwable> attempts) {
-                    return attempts.flatMap(new Func1<Throwable, Observable<Long>>() {
-                        @Override
-                        public Observable<Long> call(Throwable e) {
-                            if (!(e instanceof CASMismatchException)) {
-                                return Observable.error(e);
-                            }
-                            System.out.println("Retry update");
-                            return Observable.timer(50, TimeUnit.MILLISECONDS);
-                        }
-                    });
-                }
-            }).subscribe();
+        String qualifiedKey = createQualifiedKey(table, key);
 
-        } catch (Exception e) {
-            e.printStackTrace();
-            return ERROR;
+        while (true) {
+            JsonDocument doc = defaultBucket.get(qualifiedKey);
+
+            for (Map.Entry<String, ByteIterator> field : values.entrySet())
+                doc.content().put(field.getKey(), field.getValue().toString());
+
+            try {
+                defaultBucket.replace(doc, persistTo, replicateTo);
+                return OK;
+            }
+            catch (CASMismatchException ce) {
+                incDocUpdateRace(key);
+                sleep(config.getConcurrentUpdateRetryTimeMillis());
+            }
+            catch (Exception e) {
+                e.printStackTrace();
+                return ERROR;
+            }
         }
-        return OK;
     }
 
     @Override
@@ -181,6 +144,48 @@ public class CouchbaseClient extends MemcachedCompatibleClient {
         catch (Exception e) {
             e.printStackTrace();
             return ERROR;
+        }
+    }
+
+    @Override
+    public void cleanup() throws DBException {
+        super.cleanup();
+        printDocUpdateRacesStatistics();
+    }
+
+    private void printDocUpdateRacesStatistics() {
+        StringBuilder buf = new StringBuilder();
+        Iterator<Map.Entry<String, Integer>> docKeysIt = docUpdateRaces.entrySet().iterator();
+
+        if (docKeysIt.hasNext())
+            buf.append(keyUpdateRacesToString(docKeysIt.next()));
+
+        while (docKeysIt.hasNext()) {
+            buf.append(keyUpdateRacesToString(docKeysIt.next()));
+            buf.append('\n');
+        }
+
+        System.out.println(buf.toString());
+    }
+
+    private String keyUpdateRacesToString(Map.Entry<String, Integer> keyRaces) {
+        return keyRaces.getKey() + " : " + keyRaces.getValue();
+    }
+
+    private void incDocUpdateRace(String key) {
+        Integer races = docUpdateRaces.get(key);
+        if (races == null)
+            docUpdateRaces.put(key, 1);
+        else
+            docUpdateRaces.put(key, races + 1);
+    }
+
+    private void sleep(long ms) {
+        try {
+            Thread.sleep(ms);
+        }
+        catch (InterruptedException e) {
+            e.printStackTrace();
         }
     }
 }
