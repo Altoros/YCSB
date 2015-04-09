@@ -102,13 +102,15 @@ public class CouchbaseClient extends MemcachedCompatibleClient {
 
     @Override
     public int update(String table, String key, Map<String, ByteIterator> values) {
-        if (config.isAsyncUpdate())
-            return asyncUpdate(table, key, values);
-        else
-            return syncUpdate(table, key, values);
+        switch (config.getUpdateType()) {
+            case SYNC_CAS_LOOP:   return doSyncUpdateWithCasLoop(table, key, values);
+            case ASYNC_CAS_LOOP:  return doAsyncUpdateWithCasLoop(table, key, values);
+            case SYNC_LOCAL_LOCK: return doSyncUpdateWithLocalLock(table, key, values);
+            default: throw new IllegalArgumentException("Unknown " + config.getUpdateType() + " update type");
+        }
     }
 
-    public int syncUpdate(String table, String key, Map<String, ByteIterator> values) {
+    public int doSyncUpdateWithLocalLock(String table, String key, Map<String, ByteIterator> values) {
         synchronized (key.intern()) {
             String qualifiedKey = createQualifiedKey(table, key);
 
@@ -130,7 +132,7 @@ public class CouchbaseClient extends MemcachedCompatibleClient {
         }
     }
 
-    public int syncUpdateVer2(String table, String key, Map<String, ByteIterator> values) {
+    public int doSyncUpdateWithCasLoop(String table, String key, Map<String, ByteIterator> values) {
         String qualifiedKey = createQualifiedKey(table, key);
 
         while (true) {
@@ -156,7 +158,7 @@ public class CouchbaseClient extends MemcachedCompatibleClient {
         }
     }
 
-    private int asyncUpdate(String table, String key, final Map<String, ByteIterator> values) {
+    private int doAsyncUpdateWithCasLoop(String table, String key, final Map<String, ByteIterator> values) {
         final CountDownLatch latch = new CountDownLatch(1);
 
         Observable.defer(getDocFunc(createQualifiedKey(table, key)))
