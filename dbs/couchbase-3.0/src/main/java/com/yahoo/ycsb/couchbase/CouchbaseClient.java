@@ -262,13 +262,9 @@ public class CouchbaseClient extends MemcachedCompatibleClient {
 
     private void printDocUpdateRacesStatistics() {
         StringBuilder buf = new StringBuilder();
-        Iterator<Map.Entry<String, Integer>> docKeysIt = docUpdateRaces.entrySet().iterator();
 
-        if (docKeysIt.hasNext())
-            buf.append(keyUpdateRacesToString(docKeysIt.next()));
-
-        while (docKeysIt.hasNext()) {
-            buf.append(keyUpdateRacesToString(docKeysIt.next()));
+        for (Map.Entry<String, Integer> docKey : docUpdateRaces.entrySet()) {
+            buf.append(keyUpdateRacesToString(docKey));
             buf.append('\n');
         }
 
