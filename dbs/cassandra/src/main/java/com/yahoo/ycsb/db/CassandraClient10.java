@@ -35,6 +35,7 @@ import org.apache.cassandra.thrift.*;
 /**
  * Cassandra 1.0.6 client for YCSB framework
  */
+@Deprecated
 public class CassandraClient10 extends DB
 {
     private static Random random = new Random();

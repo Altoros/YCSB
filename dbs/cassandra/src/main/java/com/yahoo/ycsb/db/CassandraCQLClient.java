@@ -74,6 +74,8 @@ public class CassandraCQLClient extends DB
 
         private SharedCluster(Properties props) throws DBException
         {
+            log("Start initialization");
+
             descr = new CassandraDescriptor(props);
 
             try
@@ -109,6 +111,8 @@ public class CassandraCQLClient extends DB
                 scanStatements = buildScanStatements();
                 selectStatement = buildSelectStatement();
                 selectStatements = buildSelectStatements();
+
+                log("End initialization");
             }
             catch (Exception e)
             {
@@ -257,6 +261,11 @@ public class CassandraCQLClient extends DB
                     QueryBuilder.bindMarker()
             );
         }
+
+
+        private void log(String msg) {
+            System.out.println(this + ": " + msg);
+        }
     }
 
     /**
@@ -266,9 +275,9 @@ public class CassandraCQLClient extends DB
     @Override
     public void init() throws DBException
     {
-        logDebug("Initialization");
         createSharedCluster(getProperties());
         descriptor = sharedCluster.descr;
+        logDebug("Initialized");
     }
 
     private static synchronized SharedCluster createSharedCluster(Properties props) throws DBException {
@@ -285,10 +294,10 @@ public class CassandraCQLClient extends DB
     public void cleanup() throws DBException {
         synchronized (sharedCluster) {
             if (!sharedCluster.session.isClosed())
-                sharedCluster.session.close();
+                sharedCluster.session.closeAsync();
 
             if (!sharedCluster.cluster.isClosed())
-                sharedCluster.cluster.close();
+                sharedCluster.cluster.closeAsync();
         }
     }
 
