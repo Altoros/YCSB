@@ -85,7 +85,7 @@ sed -i "s|# commitlog_total_space_in_mb: 8192|commitlog_total_space_in_mb: 10124
 sed -i "s|commitlog_sync_period_in_ms: 10000|commitlog_sync_period_in_ms: 5000 ${CHANGE_MARK}|g" ${CASSANDRA_CONF}
 #sed -i "s|commitlog_sync: periodic|#commitlog_sync: periodic ${CHANGE_MARK}|g" ${CASSANDRA_CONF}
 #sed -i "s|# commitlog_sync: batch|commitlog_sync: batch ${CHANGE_MARK}|g" ${CASSANDRA_CONF}
-#sed -i "s|# commitlog_sync_batch_window_in_ms: 50|commitlog_sync_batch_window_in_ms: 1 ${CHANGE_MARK}|g" ${CASSANDRA_CONF}
+#sed -i "s|# commitlog_sync_batch_window_in_ms: 50|commitlog_sync_batch_window_in_ms: 30 ${CHANGE_MARK}|g" ${CASSANDRA_CONF}
 sed -i "s|concurrent_reads: 32|concurrent_reads: 24 ${CHANGE_MARK}|g" ${CASSANDRA_CONF}
 sed -i "s|concurrent_writes: 32|concurrent_writes: 196 ${CHANGE_MARK}|g" ${CASSANDRA_CONF}
 sed -i "s|# native_transport_max_threads: 128|native_transport_max_threads: 99000000 ${CHANGE_MARK}|g" ${CASSANDRA_CONF}
