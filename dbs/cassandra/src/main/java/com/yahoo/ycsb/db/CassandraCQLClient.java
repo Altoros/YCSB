@@ -291,15 +291,7 @@ public class CassandraCQLClient extends DB
      * DB instance per client thread.
      */
     @Override
-    public void cleanup() throws DBException {
-        synchronized (sharedCluster) {
-            if (!sharedCluster.session.isClosed())
-                sharedCluster.session.closeAsync();
-
-            if (!sharedCluster.cluster.isClosed())
-                sharedCluster.cluster.closeAsync();
-        }
-    }
+    public void cleanup() throws DBException {}
 
     /**
      * Read a record from the database. Each field/value pair from the result will
