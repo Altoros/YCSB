@@ -5,7 +5,7 @@ import java.util.Properties;
 public class CassandraConfig {
 
     public static final String HOSTS_PROPERTY = "hosts";
-    public static final String PORT_PROPERTY = "hosts";
+    public static final String PORT_PROPERTY = "port";
     public static final String KEYSPACE_PROPERTY = "cassandra.keyspace";
     public static final String KEY_NAME_PROPERTY = "cassandra.keyName";
     public static final String USERNAME_PROPERTY = "cassandra.username";

@@ -266,6 +266,7 @@ public class CassandraCQLClient extends DB
     @Override
     public void init() throws DBException
     {
+        logDebug("Initialization");
         createSharedCluster(getProperties());
         descriptor = sharedCluster.descr;
     }
@@ -281,7 +282,15 @@ public class CassandraCQLClient extends DB
      * DB instance per client thread.
      */
     @Override
-    public void cleanup() throws DBException {}
+    public void cleanup() throws DBException {
+        synchronized (sharedCluster) {
+            if (!sharedCluster.session.isClosed())
+                sharedCluster.session.close();
+
+            if (!sharedCluster.cluster.isClosed())
+                sharedCluster.cluster.close();
+        }
+    }
 
     /**
      * Read a record from the database. Each field/value pair from the result will
@@ -526,6 +535,12 @@ public class CassandraCQLClient extends DB
 
     private void error(String msg, Exception e) {
         e.printStackTrace();
-        System.out.println(msg);
+        System.err.println(msg);
     }
+
+    private void logDebug(String msg) {
+        if (descriptor.isDebug())
+            System.out.println(this + ": " + msg);
+    }
+
 }
