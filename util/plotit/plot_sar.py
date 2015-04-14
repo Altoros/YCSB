@@ -57,7 +57,7 @@ class SarLogStatistics(object):
     def __init__(self, stats_src):
         self._stats_src = stats_src
 
-    def get_metrics_to_plot(self):
+    def get_metrics_info(self):
         raise NotImplementedError('Please Implement this method')
 
     def _get_sar_system_flag(self):
@@ -86,21 +86,22 @@ class SarLogStatistics(object):
 
     def deserialize(self):
         stats = {}
-        metrics_to_plot = self.get_metrics_to_plot().keys()
+        metrics_info = self.get_metrics_info()
+        metrics_info_keys = metrics_info.keys()
 
         for metrics in self._stream_metrics():
             if self._skip(metrics):
                 continue
 
             for (metric_name, metric_str) in metrics:
-                if metric_name not in metrics_to_plot:
+                if metric_name not in metrics_info_keys:
                     continue
 
                 if not stats.get(metric_name):
                     stats[metric_name] = []
 
                 metric = float(metric_str.replace(',', '.'))
-                metric = self.get_metrics_to_plot()[metric_name].unit.converter(metric)
+                metric = metrics_info[metric_name].unit.converter(metric)
                 stats[metric_name].append(metric)
 
         return stats
@@ -114,7 +115,7 @@ class CpuSarLogStatistics(SarLogStatistics):
     def _get_sar_system_flag(self):
         return '-u'
 
-    def get_metrics_to_plot(self):
+    def get_metrics_info(self):
         percents = MetricUnit('percents', lambda unit: unit)
 
         return {
@@ -133,7 +134,7 @@ class RamSarLogStatistics(SarLogStatistics):
     def _get_sar_system_flag(self):
         return '-r'
 
-    def get_metrics_to_plot(self):
+    def get_metrics_info(self):
         megabyte = MetricUnit('MB', lambda kb: kb/1024)
         percents = MetricUnit('percents', lambda unit: unit)
 
@@ -160,7 +161,7 @@ class NetworkSarLogStatistics(SarLogStatistics):
     def _get_sar_system_flag(self):
         return '-n DEV'
 
-    def get_metrics_to_plot(self):
+    def get_metrics_info(self):
         megabyte = MetricUnit('MB/s', lambda kb: kb/1000)
         percents = MetricUnit('percents', lambda unit: unit)
 
@@ -185,7 +186,7 @@ class QueueSarLogStatistics(SarLogStatistics):
     def _get_sar_system_flag(self):
         return '-q'
 
-    def get_metrics_to_plot(self):
+    def get_metrics_info(self):
         tasks = MetricUnit('number of tasks', lambda num: num)
         return {
             'runq-sz': MetricInfo('queue length', tasks),
@@ -203,7 +204,7 @@ class DisksSarLogStatistics(SarLogStatistics):
     def _get_sar_system_flag(self):
         return '-d -p' if self._disk else '-b'
 
-    def get_metrics_to_plot(self):
+    def get_metrics_info(self):
         noop = lambda num: num
         block_to_mb = lambda bl: (bl*512)/1000/1000
 
@@ -270,7 +271,7 @@ class StatisticsPlotter(Process):
 
     def _do_plot(self):
         stats = self._statistics.deserialize()
-        metrics_to_plot = self._statistics.get_metrics_to_plot()
+        metrics_to_plot = self._statistics.get_metrics_info()
         subplots_count = len(stats)
 
         if not subplots_count:
