@@ -262,15 +262,15 @@ def _do_cassandra_set_cache():
     #sudo('sed -i "s|native_transport_max_threads: 1024 # changed|native_transport_max_threads: 99000000 # changed|g" /etc/cassandra/cassandra.yaml')
     #run('nodetool -h %s setcachecapacity -- 256 40960 50' % state.env['host'])
 
-    conf = '/etc/cassandra/cassandra.yaml'
-    #sudo('sed -i "s|# commitlog_sync: batch|commitlog_sync: batch # changed|g" %s' % conf)
-    sudo('sed -i "s|commitlog_sync_batch_window_in_ms: 30 # changed|commitlog_sync_batch_window_in_ms: 1 # changed|g" %s' % conf)
-    #sudo('sed -i "s|commitlog_sync: periodic|#commitlog_sync: periodic # changed|g" %s' % conf)
-    #sudo('sed -i "s|commitlog_sync_period_in_ms: 5000 # changed|#commitlog_sync_period_in_ms: 5000 # changed|g" %s' % conf)
+    #conf = '/etc/cassandra/cassandra.yaml'
+    #sudo('sed -i "s|commitlog_sync: batch # changed|#commitlog_sync: batch # changed|g" %s' % conf)
+    #sudo('sed -i "s|commitlog_sync_batch_window_in_ms: 1 # changed|#commitlog_sync_batch_window_in_ms: 1 # changed|g" %s' % conf)
+    #sudo('sed -i "s|#commitlog_sync: periodic # changed|commitlog_sync: periodic # changed|g" %s' % conf)
+    #sudo('sed -i "s|#commitlog_sync_period_in_ms: 5000 # changed|commitlog_sync_period_in_ms: 5000 # changed|g" %s' % conf)
 
     #sudo('sed -i "s|# memtable_cleanup_threshold: 0.05 # changed|memtable_cleanup_threshold: 0.01 # changed|g" %s' % conf)
 
-    #run('nodetool -h %s setcachecapacity -- 128 512 50' % state.env['host'])
+    run('nodetool setcachecapacity -- 128 512 50')
 
 
 @task
