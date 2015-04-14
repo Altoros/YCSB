@@ -144,4 +144,24 @@ public final class CassandraDescriptor {
     private DBException missedRequired(String name) {
         return new DBException("Required property " + name + " missing for CassandraClient");
     }
+
+    @Override
+    public String toString() {
+        return getClass() + ": {" +
+                "debug=" + debug + "; " +
+                "hosts=" + hosts + "; " +
+                "port=" + port + "; " +
+                "username=" + username + "; " +
+                "password=" + password + "; " +
+                "keyspace=" + keyspace + "; " +
+                "keyName=" + keyName + "; " +
+                "readConsistencyLevel=" + readConsistencyLevel + "; " +
+                "writeConsistencyLevel=" + writeConsistencyLevel + "; " +
+                "coreConnectionsPerHost=" + coreConnectionsPerHost + "; " +
+                "maxConnectionsPerHost=" + maxConnectionsPerHost + "; " +
+                "socketReadTimeoutMillis=" + socketReadTimeoutMillis + "; " +
+                "table=" + table + "; " +
+                "fieldCount=" + fieldCount + "; " +
+                "fieldPrefix=" + fieldPrefix + "; " + "}";
+    }
 }
