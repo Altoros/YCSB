@@ -206,7 +206,7 @@ def plot(params):
     ycsb_parser = YCSBLogParser(params.ycsb_log, params.time_step)
     stats  = ycsb_parser.deserialize()
 
-    plotter = StatisticsPlotter(stats, ycsb_parser.get_metrics_info())
+    plotter = StatisticsPlotter(stats, ycsb_parser.get_metrics_info(), 'YCSB statistics')
     plotter.start()
     plotter.join()
 
