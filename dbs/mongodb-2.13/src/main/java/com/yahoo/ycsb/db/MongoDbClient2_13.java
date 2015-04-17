@@ -67,9 +67,6 @@ public class MongoDbClient2_13 extends DB {
      */
     @Override
     public void init() throws DBException {
-        if (mongoClient != null) {
-            return;
-        }
         synchronized (MongoDbClient2_13.class) {
             if (mongoClient != null) {
                 return;
