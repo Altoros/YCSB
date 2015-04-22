@@ -9,6 +9,7 @@ CURRENT_HOST_ADDR=$1
 MONGODB_DATA=/disk1/mongodb-data
 MONGODB_LOGS=/disk1/mongodb-logs
 MONGODB_CONF_DIR=/disk1/mongodb-conf
+MONGODB_CONF=$MONGODB_CONF_DIR/mongodb-config.yaml
 MONGODB_JOURNAL_DIR=/mongodb-journal
 
 MONGOD_UPSTART_SOURCE=conf/upstart.conf
@@ -36,18 +37,19 @@ do
     cp conf/$MONGOD $MONGODB_CONF_DIR
     echo "link journal on external drive"
     mkdir -p $MONGODB_JOURNAL_DIR/rs$REPLICA_SET_INDEX/journal
-    ln -s $MONGODB_JOURNAL_DIR/rs$REPLICA_SET_INDEX/journal $replica_set_path/journal
+    ln -s -f $MONGODB_JOURNAL_DIR/rs$REPLICA_SET_INDEX/journal $replica_set_path/journal
     # overwrite default upstart script
     cp $MONGOD_UPSTART_SOURCE $MONGOD_UPSTART_TARGET$REPLICA_SET_INDEX.conf
     sed -i "s|CONF=\/etc\/mongod.conf|CONF=$MONGODB_CONF_DIR\/$MONGOD|g" $MONGOD_UPSTART_TARGET$REPLICA_SET_INDEX.conf
     let REPLICA_SET_INDEX=REPLICA_SET_INDEX+1
 done
 
+# config server settings
 mkdir -p $MONGODB_DATA/config
-cp conf/mongod-config.yaml $MONGODB_CONF_DIR
+cp conf/mongod-config.yaml $MONGODB_CONF
 cp $MONGOD_UPSTART_SOURCE $MONGOD_UPSTART_TARGET-config.conf
-sed -i "s|bindIp:|bindIp: $CURRENT_HOST_ADDR|g" $MONGODB_CONF_DIR/mongod-config.yaml
-sed -i "s|CONF=\/etc\/mongod.conf|CONF=$MONGODB_CONF_DIR\/mongod-config.yaml|g" $MONGOD_UPSTART_TARGET-config.conf
+sed -i "s|bindIp:|bindIp: $CURRENT_HOST_ADDR|g" $MONGODB_CONF
+sed -i "s|CONF=\/etc\/mongod.conf|CONF=$MONGODB_CONF|g" $MONGOD_UPSTART_TARGET-config.conf
 
 chown -R mongodb:mongodb $MONGODB_DATA
 chown -R mongodb:mongodb $MONGODB_CONF_DIR
