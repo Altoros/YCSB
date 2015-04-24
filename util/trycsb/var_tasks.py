@@ -301,6 +301,7 @@ def _do_rm_mongodb_data():
     sudo("rm -rf /disk1/mongodb-data/db/rs1/*")
     sudo("rm -rf /disk1/mongodb-conf/*")
     sudo("rm -rf /mongodb-journal/*")
+    sudo("rm -rf /disk1/mongodb-arb/*")
 
 @task
 def mongodb_copy_logs():
@@ -308,3 +309,7 @@ def mongodb_copy_logs():
     for file in files:
         log = tar('/disk1/mongodb-logs', file)
         get(log)
+
+@task
+def dpkg_configure():
+    sudo("dpkg --configure -a")

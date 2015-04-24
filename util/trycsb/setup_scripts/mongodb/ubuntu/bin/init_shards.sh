@@ -6,6 +6,9 @@ if [ -z "$1" ]; then
 fi
 
 CURRENT_HOST_ADDRESS=$1
+ARBITER_DBDATA_DIR=/disk1/mongodb-arb/
+
+mkdir -p $ARBITER_DBDATA_DIR
 
 if [ $CURRENT_HOST_ADDRESS = "50.23.195.162" ]; then
     mongo --host $CURRENT_HOST_ADDRESS --port 27000 << 'EOF'
@@ -15,6 +18,7 @@ if [ $CURRENT_HOST_ADDRESS = "50.23.195.162" ]; then
              };
     rs.initiate(config)
 EOF
+    numactl --interleave=all -- mongod --dbpath $ARBITER_DBDATA_DIR --nojournal --smallfiles --port 30000 --replSet shard0
 fi
 
 if [ $CURRENT_HOST_ADDRESS = "192.155.206.162" ]; then
@@ -25,6 +29,7 @@ if [ $CURRENT_HOST_ADDRESS = "192.155.206.162" ]; then
              };
     rs.initiate(config)
 EOF
+    numactl --interleave=all -- mongod --dbpath $ARBITER_DBDATA_DIR --nojournal --smallfiles --port 30000 --replSet shard1
 fi
 
 if [ $CURRENT_HOST_ADDRESS = "192.155.206.163" ]; then
@@ -35,4 +40,10 @@ if [ $CURRENT_HOST_ADDRESS = "192.155.206.163" ]; then
          };
     rs.initiate(config)
 EOF
+    numactl --interleave=all -- mongod --dbpath $ARBITER_DBDATA_DIR --nojournal --smallfiles --port 30000 --replSet shard2
 fi
+
+# add arbiter to each replica set
+mongo --host $CURRENT_HOST_ADDRESS --port 27000 << 'EOF'
+    rs.addArb("$CURRENT_HOST_ADDRESS:30000")
+EOF

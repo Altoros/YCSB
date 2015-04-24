@@ -7,7 +7,8 @@ storage:
   journal:
     enabled: true
   dbPath: "/disk1/mongodb-data/db/rs1"
-  engine: wiredTiger
+  engine: "wiredTiger"
+  wiredTiger:
     engineConfig:
       cacheSizeGB: 24
 processManagement:
