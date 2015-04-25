@@ -21,7 +21,8 @@ public final class CassandraDescriptor {
     private final int socketReadTimeoutMillis;
 
     private final String table;
-    private final int fieldCount;
+    private final int totalFieldCount;
+    private final int secondaryFieldCount;
     private final String fieldPrefix;
 
     public CassandraDescriptor(Properties props) throws DBException{
@@ -77,7 +78,8 @@ public final class CassandraDescriptor {
             socketReadTimeoutMillis = Integer.parseInt(cfg.socketReadTimeoutMillis);
 
         table = props.getProperty(CoreWorkload.TABLENAME_PROPERTY, CoreWorkload.TABLENAME_PROPERTY_DEFAULT);
-        fieldCount = Integer.parseInt(props.getProperty(CoreWorkload.FIELD_COUNT_PROPERTY, CoreWorkload.FIELD_COUNT_PROPERTY_DEFAULT));
+        secondaryFieldCount = Integer.parseInt(props.getProperty(CoreWorkload.FIELD_COUNT_PROPERTY, CoreWorkload.FIELD_COUNT_PROPERTY_DEFAULT));
+        totalFieldCount = secondaryFieldCount + 1;
         fieldPrefix = props.getProperty(CoreWorkload.FIELD_NAME_PREFIX, CoreWorkload.FIELD_NAME_PREFIX_DEFAULT);
     }
 
@@ -133,8 +135,12 @@ public final class CassandraDescriptor {
         return table;
     }
 
-    public int getFieldCount() {
-        return fieldCount;
+    public int getTotalFieldCount() {
+        return totalFieldCount;
+    }
+
+    public int getSecondaryFieldCount() {
+        return secondaryFieldCount;
     }
 
     public String getFieldPrefix() {
@@ -161,7 +167,8 @@ public final class CassandraDescriptor {
                 "maxConnectionsPerHost=" + maxConnectionsPerHost + "; " +
                 "socketReadTimeoutMillis=" + socketReadTimeoutMillis + "; " +
                 "table=" + table + "; " +
-                "fieldCount=" + fieldCount + "; " +
+                "totalFieldCount=" + totalFieldCount + "; " +
+                "secondaryFieldCount=" + secondaryFieldCount + "; " +
                 "fieldPrefix=" + fieldPrefix + "; " + "}";
     }
 }
