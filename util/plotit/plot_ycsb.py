@@ -226,7 +226,6 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(usage=__doc__)
     parser.add_argument("--ycsb-log", dest="ycsb_log", type=str, required=True, help="YCSB log file with status outputs")
     parser.add_argument("--time-step", dest="time_step", type=int, default=2, help="Time step")
-    parser.add_argument('-w', dest="display", action='store_true', help="If specified data will be plotted in windows otherwise exported into files")
     args = parser.parse_args()
 
     errors = validate_params(args)
