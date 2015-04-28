@@ -1,6 +1,6 @@
-CREATE KEYSPACE ks_load_2 WITH REPLICATION = {'class' : 'SimpleStrategy', 'replication_factor': 2 };
+CREATE KEYSPACE ks_load_4 WITH REPLICATION = {'class' : 'SimpleStrategy', 'replication_factor': 2 };
 
-CREATE TABLE ks_load_2.test_table (
+CREATE TABLE ks_load_4.test_table (
    y_id varchar primary key,
    field0 blob,
    field1 blob,
