@@ -142,7 +142,7 @@ public class CassandraCQLClient extends DB {
             Insert is = QueryBuilder.insertInto(descr.getTable());
             is.value(descr.getKeyName(), QueryBuilder.bindMarker());
 
-            for (int i = 0; i < descr.getFieldCount(); i++)
+            for (int i = 0; i < descr.getSecondaryFieldCount(); i++)
                 is.value(descr.getFieldPrefix() + i, QueryBuilder.bindMarker());
 
             PreparedStatement insertStatement = session.prepare(is);
@@ -155,12 +155,12 @@ public class CassandraCQLClient extends DB {
             Insert is = QueryBuilder.insertInto(descr.getTable());
             is.value(descr.getKeyName(), QueryBuilder.bindMarker());
 
-            for (int i = 0; i < descr.getFieldCount(); i++)
+            for (int i = 0; i < descr.getSecondaryFieldCount(); i++)
                 is.value(descr.getFieldPrefix() + i, QueryBuilder.bindMarker());
 
-            Map<String, PreparedStatement> updateStatements = new HashMap<>(descr.getFieldCount());
+            Map<String, PreparedStatement> updateStatements = new HashMap<>(descr.getSecondaryFieldCount());
 
-            for (int i = 0; i < descr.getFieldCount(); i++) {
+            for (int i = 0; i < descr.getSecondaryFieldCount(); i++) {
                 is = QueryBuilder.insertInto(descr.getTable());
                 is.value(descr.getKeyName(), QueryBuilder.bindMarker());
                 is.value(descr.getFieldPrefix() + i, QueryBuilder.bindMarker());
@@ -198,8 +198,8 @@ public class CassandraCQLClient extends DB {
         }
 
         private Map<String, PreparedStatement> buildSelectStatements() {
-            Map<String, PreparedStatement> selectStatements = new HashMap<>(descr.getFieldCount());
-            for (int i = 0; i < descr.getFieldCount(); i++) {
+            Map<String, PreparedStatement> selectStatements = new HashMap<>(descr.getSecondaryFieldCount());
+            for (int i = 0; i < descr.getSecondaryFieldCount(); i++) {
                 String ss = QueryBuilder.select(descr.getFieldPrefix() + i)
                         .from(descr.getTable())
                         .where(QueryBuilder.eq(descr.getKeyName(), QueryBuilder.bindMarker()))
@@ -226,9 +226,9 @@ public class CassandraCQLClient extends DB {
         }
 
         private Map<String, PreparedStatement> buildScanStatements() {
-            Map<String, PreparedStatement> scanStatements = new HashMap<>(descr.getFieldCount());
+            Map<String, PreparedStatement> scanStatements = new HashMap<>(descr.getSecondaryFieldCount());
 
-            for (int i = 0; i < descr.getFieldCount(); i++) {
+            for (int i = 0; i < descr.getSecondaryFieldCount(); i++) {
                 Select initialStmt = QueryBuilder.select(descr.getFieldPrefix() + i)
                         .from(descr.getTable());
 
@@ -285,8 +285,7 @@ public class CassandraCQLClient extends DB {
      * DB instance per client thread.
      */
     @Override
-    public void cleanup() throws DBException {
-    }
+    public void cleanup() throws DBException { }
 
     /**
      * Read a record from the database. Each field/value pair from the result will
@@ -300,7 +299,7 @@ public class CassandraCQLClient extends DB {
     @Override
     public int readAll(String table, String key, Map<String, ByteIterator> result) {
         BoundStatement bs = sharedCluster.selectStatement.bind(key);
-        return read(key, result, bs);
+        return read(key, descriptor.getTotalFieldCount(), result, bs);
     }
 
     /**
@@ -315,17 +314,27 @@ public class CassandraCQLClient extends DB {
     @Override
     public int readOne(String table, String key, String field, Map<String, ByteIterator> result) {
         BoundStatement bs = sharedCluster.selectStatements.get(field).bind(key);
-        return read(key, result, bs);
+        return read(key, 2, result, bs);
     }
 
-    private int read(String key, Map<String, ByteIterator> result, BoundStatement bs) {
+    private int read(String key, int fieldCount, Map<String, ByteIterator> result, BoundStatement bs) {
         try {
             if (descriptor.isDebug())
                 System.out.println(bs.preparedStatement().getQueryString());
 
             ResultSet rs = sharedCluster.session.execute(bs);
             Row row = rs.one();
-            assert row != null : "Key " + key + " was not found; did you run a load job with the correct parameters?";
+
+            if (row == null) {
+                logError("Key " + key + " was not found; did you run a load job with the correct parameters?");
+                return ERROR;
+            }
+
+            if (row.getColumnDefinitions().size() != fieldCount) {
+                logError("Received row " + key + " contains only " + row.getColumnDefinitions().size() + " not " + fieldCount);
+                return ERROR;
+            }
+
             for (ColumnDefinitions.Definition def : row.getColumnDefinitions()) {
                 ByteBuffer val = row.getBytesUnsafe(def.getName());
                 result.put(def.getName(), val == null ? null : new ByteArrayByteIterator(val.array()));
@@ -334,7 +343,7 @@ public class CassandraCQLClient extends DB {
             return OK;
         }
         catch (Exception e) {
-            error("Error reading key: " + key, e);
+            logError("Error reading key: " + key, e);
             return ERROR;
         }
     }
@@ -400,7 +409,7 @@ public class CassandraCQLClient extends DB {
             return OK;
         }
         catch (Exception e) {
-            error("Error scanning with startkey: " + startkey, e);
+            logError("Error scanning with startkey: " + startkey, e);
             return ERROR;
         }
     }
@@ -470,7 +479,7 @@ public class CassandraCQLClient extends DB {
             return OK;
         }
         catch (Exception e) {
-            error(e);
+            logError(e);
         }
 
         return ERROR;
@@ -494,19 +503,26 @@ public class CassandraCQLClient extends DB {
             return OK;
         }
         catch (Exception e) {
-            error("Error deleting key: " + key, e);
+            logError("Error deleting key: " + key, e);
         }
 
         return ERROR;
     }
 
-    private void error(Exception e) {
-        error("", e);
+    private void logError(Exception e) {
+        logError(null, e);
     }
 
-    private void error(String msg, Exception e) {
-        e.printStackTrace();
-        System.err.println(msg);
+    private void logError(String msg) {
+        logError(msg, null);
+    }
+
+    private void logError(String msg, Exception e) {
+        if (e != null)
+            e.printStackTrace();
+
+        if (msg != null)
+            System.err.println(msg);
     }
 
     private void logDebug(String msg) {
