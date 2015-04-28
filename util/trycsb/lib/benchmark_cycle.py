@@ -55,6 +55,16 @@ def _get_stats_log_path(conf, host):
     log_file = log_file_name_formatter('%s-stats' % conf.workload_name, host)
     return path(conf.benchmark_remote_logs_dir, log_file)
 
+def _get_workload_log_path(conf, host):
+    log_file = log_file_name_formatter(conf.workload_name, host)
+    return path(conf.benchmark_remote_logs_dir, log_file)
+
+def _get_db_log_path(conf):
+    log_file_path = lambda f : path(conf.db_logs_dir) + f
+    logs = []
+    for file in conf.db_logs_files:
+        logs.append(log_file_path(file))
+    return logs
 
 @parallel
 @roles('servers', 'clients')
@@ -86,12 +96,6 @@ def _get_ycsb_options(conf):
 
     return ' '.join(options)
     
-
-def _get_workload_log_path(conf, host):
-    log_file = log_file_name_formatter(conf.workload_name, host)
-    return path(conf.benchmark_remote_logs_dir, log_file)
-
-
 @parallel
 @roles('clients')
 def _execute_workload(conf):
@@ -109,9 +113,14 @@ def _execute_workload(conf):
 @parallel
 @roles('servers')
 def _collect_benchmark_server_results(conf):
-    log_path = dir_name_file_name(_get_stats_log_path(conf, _curr_host()))
-    target = tar(log_path['dir'], log_path['file'])
+    sar_log_path = dir_name_file_name(_get_stats_log_path(conf, _curr_host()))
+    target = tar(sar_log_path['dir'], sar_log_path['file'])
     get(target, conf.benchmark_local_logs_dir)
+
+    for db_log_path in _get_db_log_path(conf):
+        db_log =  dir_name_file_name(db_log_path)
+        target = tar(db_log['dir'], "%s_%s_%s" % (conf.workload_name, db_log['file'], _curr_host()))
+        get(target, conf.benchmark_local_logs_dir)
 
 
 @parallel

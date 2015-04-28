@@ -78,6 +78,14 @@ class BenchmarkConfig():
         return path(self.benchmark_local_home_dir, self.db_profile)
 
     @property
+    def db_logs_dir(self):
+        return self._server_conf.logs_remote_dir
+
+    @property
+    def db_logs_files(self):
+        return self._server_conf.logs_remote_files
+
+    @property
     def db_profile(self):
         return self._db_profile
 
@@ -186,3 +194,11 @@ class _ServerConfig():
     @property
     def setup_db_local_files(self):
         return _to_file_paths(self.setup_db_local_dir, listdir(self.setup_db_local_dir))
+
+    @property
+    def logs_remote_dir(self):
+        return path(self.db_parameters.get('logs_remote_dir'))
+
+    @property
+    def logs_remote_files(self):
+        return self.db_parameters.get('logs_remote_files')
