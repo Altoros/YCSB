@@ -11,6 +11,11 @@ storage:
   wiredTiger:
     engineConfig:
       cacheSizeGB: 24
+    journalCompressor: zlib
+    collectionConfig:
+      blockCompressor: zlib
+    indexConfig:
+      prefixCompression: true
 processManagement:
   fork: true
 net:
