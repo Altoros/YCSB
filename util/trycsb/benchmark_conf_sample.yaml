@@ -106,3 +106,7 @@ servers:
             # All content of $setup_local_dir directory will be copied to this remote
             # directory related to $benchmark_remote_home_dir
             setup_remote_dir: setup_scripts/cassandra
+
+            # Database specific remote logs directory and files inside it
+            logs_remote_dir: /disk1/mongodb-logs/
+            logs_remote_files: [config.log, rs0.log, rs1.log]
