@@ -64,7 +64,7 @@ public class CouchbaseConfig extends PropertiesConfig implements MemcachedCompat
     public CouchbaseConfig(Properties properties) {
         super(properties);
         declareProperty(HOSTS_PROPERTY, true);
-        declareProperty(BUCKET_PROPERTY, DEFAULT_BUCKET);
+        declareProperty(BUCKET_PROPERTY, true);
         declareProperty(USER_PROPERTY, false);
         declareProperty(PASSWORD_PROPERTY, false);
         declareProperty(CHECK_OPERATION_STATUS_PROPERTY, CHECK_OPERATION_STATUS_DEFAULT);

@@ -45,7 +45,7 @@ public class CouchbaseClient extends MemcachedCompatibleClient {
     }
 
     private static class BucketHolder {
-        public static final Bucket BUCKET = getClusterInstance().openBucket();
+        public static final Bucket BUCKET = getClusterInstance().openBucket(config.getBucket());
     }
 
     private static Bucket getBucketInstance() {
