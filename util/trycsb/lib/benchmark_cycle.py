@@ -119,7 +119,7 @@ def _collect_benchmark_server_results(conf):
 
     for db_log_path in _get_db_log_path(conf):
         db_log =  dir_name_file_name(db_log_path)
-        target = tar(db_log['dir'], "%s_%s_%s" % (conf.workload_name, db_log['file'], _curr_host()))
+        target = tar(db_log['dir'], db_log['file'], "%s_%s_%s" % (conf.workload_name, db_log['file'], _curr_host()))
         get(target, conf.benchmark_local_logs_dir)
 
 

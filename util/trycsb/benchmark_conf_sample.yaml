@@ -108,5 +108,5 @@ servers:
             setup_remote_dir: setup_scripts/cassandra
 
             # Database specific remote logs directory and files inside it
-            logs_remote_dir: /disk1/mongodb-logs/
-            logs_remote_files: [config.log, rs0.log, rs1.log]
+            logs_remote_dir: /disk1/logs/
+            logs_remote_files: [database, logs, files]
