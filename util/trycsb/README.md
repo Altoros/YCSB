@@ -24,6 +24,9 @@ To make executable YCSB file with all necessary dependencies, run:
 
 where `db_profile_id` is the id of database profile, specified in `pom.xml` of certain database at `/dbs` directory.
 
+Don't forget to copy the result jar from `/dbs/$database/target` drectory to `/util/trycsb` directory and
+to specify the correct name of jar file in `uploads:` section in `benchmark_conf.yaml` file .
+
 #Deploying YCSB client on server
 
 To deploy YCSB client on server, run:
