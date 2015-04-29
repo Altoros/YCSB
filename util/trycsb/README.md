@@ -20,7 +20,9 @@ So first you need to configure it.
 
 To make executable YCSB file with all necessary dependencies, run:
 
-    mvn package -P db_profile
+    mvn package -P db_profile_id
+
+where `db_profile_id` is the id of database profile, specified in `pom.xml` of certain database at `/dbs` directory.
 
 #Deploying YCSB client on server
 
