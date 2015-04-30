@@ -14,7 +14,6 @@ from matplotlib.widgets import CheckButtons
 
 # Add more colors to plot more than one figure in one window
 COLORS = ['#008000',  # green
-          '#000000',  # black
           '#0033FF',  # blue
           '#9933CC',  # purple
           '#FF3366',  # red
@@ -186,8 +185,11 @@ class StatisticsPlotter(Process):
                           lw=1,
                           color=COLORS[i])
 
-            axarr[i].set_xlabel(self._metrics_info[YCSBLogParser.TIME].name)
-            axarr[i].set_ylabel(self._metrics_info[key].unit.name)
+            axarr[i].set_xlabel(self._metrics_info[YCSBLogParser.TIME].name, labelpad=10)
+            axarr[i].set_ylabel(self._metrics_info[key].unit.name, labelpad=10)
+            axarr[i].set_title('', y=1.05)
+            axarr[i].yaxis.set_ticks_position('left')
+            axarr[i].xaxis.set_ticks_position('bottom')
             axarr[i].legend()
             axes_by_names[key] = i
 
