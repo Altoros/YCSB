@@ -26,6 +26,7 @@ from util import make_remote_dirs
 from util import path
 from util import sudo_kill_15
 from util import tar
+from util import ls
 
 from config import BenchmarkConfig
 
@@ -60,10 +61,12 @@ def _get_workload_log_path(conf, host):
     return path(conf.benchmark_remote_logs_dir, log_file)
 
 def _get_db_log_path(conf):
-    log_file_path = lambda f : path(conf.db_logs_dir) + f
     logs = []
-    for file in conf.db_logs_files:
-        logs.append(log_file_path(file))
+    if conf.db_logs_dir:
+        log_file_path = lambda f : path(conf.db_logs_dir) + f
+        collect_logs = conf.db_logs_files if conf.db_logs_files else ls(conf.db_logs_dir)
+        for file in collect_logs:
+            logs.append(log_file_path(file))
     return logs
 
 @parallel

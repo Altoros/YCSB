@@ -107,6 +107,6 @@ servers:
             # directory related to $benchmark_remote_home_dir
             setup_remote_dir: setup_scripts/cassandra
 
-            # Database specific remote logs directory and files inside it
+            # [optional] Database specific remote logs directory and files inside it.
             logs_remote_dir: /disk1/logs/
             logs_remote_files: [database, logs, files]

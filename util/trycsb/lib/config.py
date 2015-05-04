@@ -197,7 +197,8 @@ class _ServerConfig():
 
     @property
     def logs_remote_dir(self):
-        return path(self.db_parameters.get('logs_remote_dir'))
+        if (self.db_parameters.get('logs_remote_dir')):
+            return path(self.db_parameters.get('logs_remote_dir'))
 
     @property
     def logs_remote_files(self):

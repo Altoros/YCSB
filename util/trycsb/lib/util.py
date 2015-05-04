@@ -127,3 +127,6 @@ def tar(src_dir, src_file, dest_file=None):
         sudo('tar -czf %s %s' % (dest_file, src_file))
 
     return path(src_dir, dest_file)
+
+def ls(dir):
+    run('ls %s' % dir)
