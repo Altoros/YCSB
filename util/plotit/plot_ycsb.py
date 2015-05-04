@@ -163,7 +163,7 @@ class StatisticsPlotter(Process):
             ax.yaxis.set_ticks_position('left')
             ax.xaxis.set_ticks_position('bottom')
             #ax.legend()
-            fig.savefig(self._export_prefix + self._metrics_info[key].name + '.svg', format='svg')
+            #fig.savefig(self._export_prefix + self._metrics_info[key].name + '.svg', format='svg')
             fig.savefig(self._export_prefix + self._metrics_info[key].name + '.png', format='png')
             #axes_by_names[key] = i
 
