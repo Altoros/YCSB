@@ -95,12 +95,13 @@ class YCSBLogParser(object):
 
 class StatisticsPlotter(Process):
 
-    def __init__(self, stats={}, metrics_info={}, plot_title='Any statistics'):
+    def __init__(self, stats={}, metrics_info={}, plot_title='Any statistics', export_prefix=''):
         super(StatisticsPlotter, self).__init__()
 
         self._stats = stats
         self._metrics_info = metrics_info
         self._plot_title = plot_title
+        self._export_prefix = export_prefix
 
     # def _rearrange_subplots(self, axes):
     #     for i, ax in enumerate(axes):
@@ -161,9 +162,9 @@ class StatisticsPlotter(Process):
             ax.set_title('', y=1.05)
             ax.yaxis.set_ticks_position('left')
             ax.xaxis.set_ticks_position('bottom')
-            ax.legend()
-            fig.savefig(self._metrics_info[key].name + '.svg', format='svg')
-            fig.savefig(self._metrics_info[key].name + '.png', format='png')
+            #ax.legend()
+            fig.savefig(self._export_prefix + self._metrics_info[key].name + '.svg', format='svg')
+            fig.savefig(self._export_prefix + self._metrics_info[key].name + '.png', format='png')
             #axes_by_names[key] = i
 
         #rax = plt.axes([0.01, 0.8, 0.1, 0.1])
@@ -192,7 +193,7 @@ def plot(params):
     ycsb_parser = YCSBLogParser(params.ycsb_log, params.time_step)
     stats  = ycsb_parser.deserialize()
 
-    plotter = StatisticsPlotter(stats, ycsb_parser.get_metrics_info(), 'YCSB statistics')
+    plotter = StatisticsPlotter(stats, ycsb_parser.get_metrics_info(), 'YCSB statistics', params.export_prefix)
     plotter.start()
     plotter.join()
 
@@ -212,6 +213,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(usage=__doc__)
     parser.add_argument("--ycsb-log", dest="ycsb_log", type=str, help="YCSB log file with status outputs")
     parser.add_argument("--time-step", dest="time_step", type=int, default=2, help="Time step")
+    parser.add_argument("--export-prefix", dest="export_prefix", type=str, default='', help="Exported files prefix")
     params = parser.parse_args()
 
     errors = [] #validate_params(args)
