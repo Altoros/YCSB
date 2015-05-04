@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 """ Plots statictics collected by sar.
 """
 import argparse
@@ -6,12 +8,10 @@ import subprocess
 
 from multiprocessing import Process
 from matplotlib import pyplot as plt
-from matplotlib.widgets import CheckButtons
 
 
 # Add more colors to plot more than one figure in one window
 COLORS = ['#008000',  # green
-          '#000000',  # black
           '#0033FF',  # blue
           '#9933CC',  # purple
           '#FF3366',  # red
@@ -241,33 +241,34 @@ class DisksSarLogStatistics(SarLogStatistics):
 
 class StatisticsPlotter(Process):
 
-    def __init__(self, statistics=None, plot_title='Any statistics'):
+    def __init__(self, statistics=None, plot_title='Any statistics', export_prefix=''):
         super(StatisticsPlotter, self).__init__()
 
         self._statistics = statistics
         self._plot_title = plot_title
+        self._export_prefix = export_prefix
 
-    def _rearrange_subplots(self, axes):
-        for i, ax in enumerate(axes):
-            ax.change_geometry(len(axes), 1, i)
-
-    def _get_show_hide_fn(self, figure, axes, ax_name_to_index):
-        visible_axes = list(axes)
-
-        def fn(checkbox_label):
-            ax = axes[ax_name_to_index[checkbox_label]]
-            ax.set_visible(not ax.get_visible())
-
-            if not ax.get_visible():
-                visible_axes.remove(ax)
-            else:
-                visible_axes.append(ax)
-
-            self._rearrange_subplots(visible_axes)
-
-            figure.canvas.draw()
-
-        return fn
+    # def _rearrange_subplots(self, axes):
+    #     for i, ax in enumerate(axes):
+    #         ax.change_geometry(len(axes), 1, i)
+    #
+    # def _get_show_hide_fn(self, figure, axes, ax_name_to_index):
+    #     visible_axes = list(axes)
+    #
+    #     def fn(checkbox_label):
+    #         ax = axes[ax_name_to_index[checkbox_label]]
+    #         ax.set_visible(not ax.get_visible())
+    #
+    #         if not ax.get_visible():
+    #             visible_axes.remove(ax)
+    #         else:
+    #             visible_axes.append(ax)
+    #
+    #         self._rearrange_subplots(visible_axes)
+    #
+    #         figure.canvas.draw()
+    #
+    #     return fn
 
     def _do_plot(self):
         stats = self._statistics.deserialize()
@@ -277,38 +278,45 @@ class StatisticsPlotter(Process):
         if not subplots_count:
             return
 
-        fig, axarr = plt.subplots(subplots_count)
-        fig.canvas.set_window_title(self._plot_title)
+        #fig, axarr = plt.subplots(subplots_count)
+        #fig.canvas.set_window_title(self._plot_title)
 
         time = range(len(stats[stats.keys()[0]]))
         axes_by_names = {}
 
         for i, key in enumerate(stats.keys()):
-            axarr[i].plot(time, stats[key], label=metrics_to_plot[key].name, lw=1, color=COLORS[i])
-            axarr[i].set_xlabel('time (sec)')
-            axarr[i].set_ylabel(metrics_to_plot[key].unit.name)
-            axarr[i].legend()
-            axes_by_names[key] = i
+            fig = plt.figure()
+            fig.canvas.set_window_title(self._plot_title)
+            ax = fig.add_subplot(111)
+            ax.plot(time, stats[key], label=metrics_to_plot[key].name, lw=1, color=COLORS[i])
+            ax.set_xlabel('time (sec)')
+            ax.set_ylabel(metrics_to_plot[key].unit.name)
+            #fig.savefig(self._export_prefix + self._plot_title + self._metrics_info[key].name + '.svg', format='svg')
+            file_postfix = metrics_to_plot[key].name.replace('/', '_')
+            print file_postfix
+            fig.savefig(self._export_prefix + '[' + self._plot_title + ']_' + file_postfix + '.png', format='png')
+            #ax.legend()
+            #axes_by_names[key] = i
 
-        rax = plt.axes([0.01, 0.8, 0.1, 0.1])
-        check_btns = CheckButtons(rax, stats.keys(), [True] * subplots_count)
-        check_btns.on_clicked(self._get_show_hide_fn(fig, axarr, axes_by_names))
+        #rax = plt.axes([0.01, 0.8, 0.1, 0.1])
+        #check_btns = CheckButtons(rax, stats.keys(), [True] * subplots_count)
+        #check_btns.on_clicked(self._get_show_hide_fn(fig, axarr, axes_by_names))
 
-        plt.subplots_adjust(left=0.2)
-        plt.show()
+        #plt.subplots_adjust(left=0.2)
+        #plt.show()
 
     def run(self):
         self._do_plot()
 
 
 def plot_cpu_stats(params):
-    proc = StatisticsPlotter(CpuSarLogStatistics(params.sar_log), 'CPU activity (all cores)')
+    proc = StatisticsPlotter(CpuSarLogStatistics(params.sar_log), 'CPU activity (all cores)', params.export_prefix)
     proc.start()
     return [proc]
 
 
 def plot_ram_stats(params):
-    proc = StatisticsPlotter(RamSarLogStatistics(params.sar_log), 'Memory activity')
+    proc = StatisticsPlotter(RamSarLogStatistics(params.sar_log), 'Memory activity', params.export_prefix)
     proc.start()
     return [proc]
 
@@ -316,7 +324,7 @@ def plot_ram_stats(params):
 def plot_network_stats(params):
     procs = []
     for iface in params.iface:
-        proc = StatisticsPlotter(NetworkSarLogStatistics(params.sar_log, iface), 'Network [%s] activity' % iface)
+        proc = StatisticsPlotter(NetworkSarLogStatistics(params.sar_log, iface), 'Network [%s] activity' % iface, params.export_prefix)
         proc.start()
         procs.append(proc)
 
@@ -324,20 +332,20 @@ def plot_network_stats(params):
 
 
 def plot_queue_stats(params):
-    proc = StatisticsPlotter(QueueSarLogStatistics(params.sar_log), 'Queue activity')
+    proc = StatisticsPlotter(QueueSarLogStatistics(params.sar_log), 'Queue activity', params.export_prefix)
     proc.start()
     return [proc]
 
 
 def plot_disks_stats(params):
     if not params.disks:
-        proc = StatisticsPlotter(DisksSarLogStatistics(params.sar_log), 'All disks activity')
+        proc = StatisticsPlotter(DisksSarLogStatistics(params.sar_log), 'All disks activity', params.export_prefix)
         proc.start()
         return [proc]
     else:
         procs = []
         for disk_name in params.disks:
-            proc = StatisticsPlotter(DisksSarLogStatistics(params.sar_log, disk_name), 'Disk [%s] activity' % disk_name)
+            proc = StatisticsPlotter(DisksSarLogStatistics(params.sar_log, disk_name), 'Disk [%s] activity' % disk_name, params.export_prefix)
             proc.start()
             procs.append(proc)
 
@@ -372,6 +380,7 @@ if __name__ == '__main__':
     parser.add_argument('-p', '--plots', nargs='+', choices=['cpu', 'ram', 'net', 'que', 'dsk'], default=[], help='systems to plot')
     parser.add_argument('-d', '--disks', nargs='+', metavar='DEV', default=[], help='disks names to plot')
     parser.add_argument('-i', '--iface', nargs='+', metavar='IF', default=[], help='network interfaces to plot. Used with "net" plot')
+    parser.add_argument("--export-prefix", dest="export_prefix", type=str, default='', help="Exported files prefix")
 
     return_code = plot_stats(parser.parse_args())
     sys.exit(return_code)
