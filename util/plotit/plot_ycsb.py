@@ -9,6 +9,8 @@ import os
 import re
 import sys
 
+from cached_property import cached_property
+
 from common import *
 
 from multiprocessing import Process
@@ -28,7 +30,8 @@ class YCSBLogParser(object):
         self._ycsb_log = ycsb_log
         self._time_step = time_step
 
-    def get_metrics_info(self):
+    @cached_property
+    def metrics_info(self):
         us_str_to_ms = MetricUnit('ms', lambda us: float(us)/1000)
         str_to_float = lambda v: float(v)
 
@@ -70,8 +73,6 @@ class YCSBLogParser(object):
             YCSBLogParser.READ: []
         }
 
-        metrics_info = self.get_metrics_info()
-
         for metrics_tokens in self._stream_metrics_tokens():
             if len(metrics_tokens) <= 6:
                 stats[YCSBLogParser.OPERATIONS].append(0)
@@ -80,11 +81,11 @@ class YCSBLogParser(object):
                 stats[YCSBLogParser.UPDATE].append(0)
                 stats[YCSBLogParser.READ].append(0)
             else:
-                stats[YCSBLogParser.OPERATIONS].append(metrics_info[YCSBLogParser.OPERATIONS].unit.converter(metrics_tokens[3]))
-                stats[YCSBLogParser.THROUGHPUT].append(metrics_info[YCSBLogParser.THROUGHPUT].unit.converter(metrics_tokens[5]))
+                stats[YCSBLogParser.OPERATIONS].append(self.metrics_info[YCSBLogParser.OPERATIONS].unit.converter(metrics_tokens[3]))
+                stats[YCSBLogParser.THROUGHPUT].append(self.metrics_info[YCSBLogParser.THROUGHPUT].unit.converter(metrics_tokens[5]))
 
                 for k, v in self._extract_latencies(metrics_tokens):
-                    stats[k].append(metrics_info[k].unit.converter(v))
+                    stats[k].append(self.metrics_info[k].unit.converter(v))
 
         stats[YCSBLogParser.TIME] = list(xrange(0,
                                                 self._time_step*len(stats[YCSBLogParser.OPERATIONS]),
@@ -157,8 +158,8 @@ class StatisticsPlotter(Process):
                       lw=1,
                       color=COLORS[i])
 
-            ax.set_xlabel(self._metrics_info[YCSBLogParser.TIME].name, labelpad=10)
-            ax.set_ylabel(self._metrics_info[key].unit.name, labelpad=10)
+            ax.set_xlabel(self._metrics_info[YCSBLogParser.TIME].full_name, labelpad=5)
+            ax.set_ylabel(self._metrics_info[key].full_name, labelpad=5)
             ax.set_title('', y=1.05)
             ax.yaxis.set_ticks_position('left')
             ax.xaxis.set_ticks_position('bottom')
@@ -193,7 +194,7 @@ def plot(params):
     ycsb_parser = YCSBLogParser(params.ycsb_log, params.time_step)
     stats  = ycsb_parser.deserialize()
 
-    plotter = StatisticsPlotter(stats, ycsb_parser.get_metrics_info(), 'YCSB statistics', params.export_prefix)
+    plotter = StatisticsPlotter(stats, ycsb_parser.metrics_info, 'YCSB statistics', params.export_prefix)
     plotter.start()
     plotter.join()
 

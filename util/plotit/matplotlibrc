@@ -282,7 +282,7 @@ ytick.direction      : out     # direction: in, out, or inout
 grid.color       :   0.7   # grid color
 grid.linestyle   :   solid    
 # grid.linewidth   :   0.5     # in points
-grid.alpha       :   0.2     # transparency, between 0.0 and 1.0
+grid.alpha       :   0.4     # transparency, between 0.0 and 1.0
 
 ### Legend
 #legend.fancybox      : False  # if True, use a rounded box for the
@@ -305,7 +305,7 @@ grid.alpha       :   0.2     # transparency, between 0.0 and 1.0
 
 ### FIGURE
 # See http://matplotlib.org/api/figure_api.html#matplotlib.figure.Figure
-figure.figsize   : 8, 6    # figure size in inches
+figure.figsize   : 8, 6     # figure size in inches
 figure.dpi       : 150      # figure dots per inch
 figure.facecolor : white    # figure facecolor; 0.75 is scalar gray
 #figure.edgecolor : white   # figure edgecolor
@@ -366,10 +366,10 @@ figure.max_open_warning : 40  # The maximum number of figures to open through
 # the default savefig params can be different from the display params
 # e.g., you may want a higher resolution, or to make the figure
 # background white
-savefig.dpi         : 300      # figure dots per inch
+savefig.dpi         : 96       # figure dots per inch
 savefig.format      : svg      # png, ps, pdf, svg
-savefig.bbox        : tight # 'tight' or 'standard'.
-savefig.pad_inches  : 0.1      # Padding to be used when bbox is set to 'tight'
+savefig.bbox        : tight    # 'tight' or 'standard'.
+savefig.pad_inches  : 0.07     # Padding to be used when bbox is set to 'tight'
 savefig.jpeg_quality: 100      # when a jpeg is saved, the default quality parameter.
 
 # Set the verbose flags.  This controls how much information

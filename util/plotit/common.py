@@ -1,6 +1,8 @@
 """ Common functions and classes definitions for different types of
     plots.
 """
+from cached_property import cached_property
+
 
 # Add more colors to plot more than one figure in one window
 COLORS = ['#008000',  # green
@@ -11,7 +13,8 @@ COLORS = ['#008000',  # green
           '#8B4513',  # saddle brown
           '#008080',  # teal
           '#EE82EE',  # violet
-          '#6A5ACD']  # slate blue
+          '#6A5ACD',  # slate blue
+          '#000000']  # black
 
 
 class MetricUnit(object):
@@ -42,3 +45,7 @@ class MetricInfo(object):
     @property
     def unit(self):
         return self._unit
+
+    @cached_property
+    def full_name(self):
+        return '%s (%s)' % (self._name, self._unit.name)

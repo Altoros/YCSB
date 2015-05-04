@@ -6,50 +6,12 @@ import argparse
 import sys
 import subprocess
 
+from cached_property import cached_property
+
 from multiprocessing import Process
 from matplotlib import pyplot as plt
 
-
-# Add more colors to plot more than one figure in one window
-COLORS = ['#008000',  # green
-          '#0033FF',  # blue
-          '#9933CC',  # purple
-          '#FF3366',  # red
-          '#FF6600',  # orange
-          '#8B4513',  # saddle brown
-          '#008080',  # teal
-          '#EE82EE',  # violet
-          '#6A5ACD']  # slate blue
-
-
-class MetricUnit(object):
-
-    def __init__(self, name, converter):
-        self._name = name
-        self._converter = converter
-
-    @property
-    def name(self):
-        return self._name
-
-    @property
-    def converter(self):
-        return self._converter
-
-
-class MetricInfo(object):
-
-    def __init__(self, name, unit):
-        self._name = name
-        self._unit = unit
-
-    @property
-    def name(self):
-        return self._name
-
-    @property
-    def unit(self):
-        return self._unit
+from common import *
 
 
 class SarLogStatistics(object):
@@ -57,7 +19,8 @@ class SarLogStatistics(object):
     def __init__(self, stats_src):
         self._stats_src = stats_src
 
-    def get_metrics_info(self):
+    @cached_property
+    def metrics_info(self):
         raise NotImplementedError('Please Implement this method')
 
     def _get_sar_system_flag(self):
@@ -83,11 +46,9 @@ class SarLogStatistics(object):
     def _skip(self, metrics):
         return False
 
-
     def deserialize(self):
         stats = {}
-        metrics_info = self.get_metrics_info()
-        metrics_info_keys = metrics_info.keys()
+        metrics_info_keys = self.metrics_info.keys()
 
         for metrics in self._stream_metrics():
             if self._skip(metrics):
@@ -101,7 +62,7 @@ class SarLogStatistics(object):
                     stats[metric_name] = []
 
                 metric = float(metric_str.replace(',', '.'))
-                metric = metrics_info[metric_name].unit.converter(metric)
+                metric = self.metrics_info[metric_name].unit.converter(metric)
                 stats[metric_name].append(metric)
 
         return stats
@@ -115,7 +76,8 @@ class CpuSarLogStatistics(SarLogStatistics):
     def _get_sar_system_flag(self):
         return '-u'
 
-    def get_metrics_info(self):
+    @cached_property
+    def metrics_info(self):
         percents = MetricUnit('percents', lambda unit: unit)
 
         return {
@@ -134,7 +96,8 @@ class RamSarLogStatistics(SarLogStatistics):
     def _get_sar_system_flag(self):
         return '-r'
 
-    def get_metrics_info(self):
+    @cached_property
+    def metrics_info(self):
         megabyte = MetricUnit('MB', lambda kb: kb/1024)
         percents = MetricUnit('percents', lambda unit: unit)
 
@@ -161,7 +124,8 @@ class NetworkSarLogStatistics(SarLogStatistics):
     def _get_sar_system_flag(self):
         return '-n DEV'
 
-    def get_metrics_info(self):
+    @cached_property
+    def metrics_info(self):
         megabyte = MetricUnit('MB/s', lambda kb: kb/1000)
         percents = MetricUnit('percents', lambda unit: unit)
 
@@ -186,7 +150,8 @@ class QueueSarLogStatistics(SarLogStatistics):
     def _get_sar_system_flag(self):
         return '-q'
 
-    def get_metrics_info(self):
+    @cached_property
+    def metrics_info(self):
         tasks = MetricUnit('number of tasks', lambda num: num)
         return {
             'runq-sz': MetricInfo('queue length', tasks),
@@ -204,7 +169,8 @@ class DisksSarLogStatistics(SarLogStatistics):
     def _get_sar_system_flag(self):
         return '-d -p' if self._disk else '-b'
 
-    def get_metrics_info(self):
+    @cached_property
+    def metrics_info(self):
         noop = lambda num: num
         block_to_mb = lambda bl: (bl*512)/1000/1000
 
@@ -272,7 +238,7 @@ class StatisticsPlotter(Process):
 
     def _do_plot(self):
         stats = self._statistics.deserialize()
-        metrics_to_plot = self._statistics.get_metrics_info()
+        metrics_to_plot = self._statistics.metrics_info
         subplots_count = len(stats)
 
         if not subplots_count:
@@ -290,10 +256,9 @@ class StatisticsPlotter(Process):
             ax = fig.add_subplot(111)
             ax.plot(time, stats[key], label=metrics_to_plot[key].name, lw=1, color=COLORS[i])
             ax.set_xlabel('time (sec)')
-            ax.set_ylabel(metrics_to_plot[key].unit.name)
+            ax.set_ylabel(metrics_to_plot[key].full_name)
             #fig.savefig(self._export_prefix + self._plot_title + self._metrics_info[key].name + '.svg', format='svg')
             file_postfix = metrics_to_plot[key].name.replace('/', '_')
-            print file_postfix
             fig.savefig(self._export_prefix + '[' + self._plot_title + ']_' + file_postfix + '.png', format='png')
             #ax.legend()
             #axes_by_names[key] = i
