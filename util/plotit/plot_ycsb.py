@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 """ Plots values you gave from YCSB logging.
     As the result you'll get graphs of latency function,
     throughput function and operations function.
@@ -7,51 +9,10 @@ import os
 import re
 import sys
 
+from common import *
+
 from multiprocessing import Process
 from matplotlib import pyplot as plt
-from matplotlib.widgets import CheckButtons
-
-
-# Add more colors to plot more than one figure in one window
-COLORS = ['#008000',  # green
-          '#0033FF',  # blue
-          '#9933CC',  # purple
-          '#FF3366',  # red
-          '#FF6600',  # orange
-          '#8B4513',  # saddle brown
-          '#008080',  # teal
-          '#EE82EE',  # violet
-          '#6A5ACD']  # slate blue
-
-
-class MetricUnit(object):
-
-    def __init__(self, name, converter=lambda v: v):
-        self._name = name
-        self._converter = converter
-
-    @property
-    def name(self):
-        return self._name
-
-    @property
-    def converter(self):
-        return self._converter
-
-
-class MetricInfo(object):
-
-    def __init__(self, name, unit):
-        self._name = name
-        self._unit = unit
-
-    @property
-    def name(self):
-        return self._name
-
-    @property
-    def unit(self):
-        return self._unit
 
 
 class YCSBLogParser(object):
@@ -141,27 +102,34 @@ class StatisticsPlotter(Process):
         self._metrics_info = metrics_info
         self._plot_title = plot_title
 
-    def _rearrange_subplots(self, axes):
-        for i, ax in enumerate(axes):
-            ax.change_geometry(len(axes), 1, i)
-
-    def _get_show_hide_fn(self, figure, axes, ax_name_to_index):
-        visible_axes = list(axes)
-
-        def fn(checkbox_label):
-            ax = axes[ax_name_to_index[checkbox_label]]
-            ax.set_visible(not ax.get_visible())
-
-            if not ax.get_visible():
-                visible_axes.remove(ax)
-            else:
-                visible_axes.append(ax)
-
-            self._rearrange_subplots(visible_axes)
-
-            figure.canvas.draw()
-
-        return fn
+    # def _rearrange_subplots(self, axes):
+    #     for i, ax in enumerate(axes):
+    #         ax.change_geometry(self._get_subplots_in_col(len(axes)),
+    #                            self._get_subplots_in_row(len(axes)), i)
+    #
+    # def _get_show_hide_fn(self, figure, axes, ax_name_to_index):
+    #     visible_axes = list(axes)
+    #
+    #     def fn(checkbox_label):
+    #         ax = axes[ax_name_to_index[checkbox_label]]
+    #         ax.set_visible(not ax.get_visible())
+    #
+    #         if not ax.get_visible():
+    #             visible_axes.remove(ax)
+    #         else:
+    #             visible_axes.append(ax)
+    #
+    #         self._rearrange_subplots(visible_axes)
+    #
+    #         figure.canvas.draw()
+    #
+    #     return fn
+    #
+    # def _get_subplots_in_col(self, total_subplots):
+    #     return 1 if total_subplots <= 3 else total_subplots/3
+    #
+    # def _get_subplots_in_row(self, total_subplots):
+    #     return 3 if total_subplots >= 3 else total_subplots
 
     def _do_plot(self):
         if YCSBLogParser.TIME not in self._stats:
@@ -174,37 +142,53 @@ class StatisticsPlotter(Process):
         if not subplots_count:
             return
 
-        fig, axarr = plt.subplots(subplots_count)
-        fig.canvas.set_window_title(self._plot_title)
+        #fig, axarr = plt.subplots(nrows=self._get_subplots_in_col(subplots_count),
+        #                          ncols=self._get_subplots_in_row(subplots_count))
 
         axes_by_names = {}
 
         for i, key in enumerate(metric_names):
-            axarr[i].plot(self._stats[YCSBLogParser.TIME], self._stats[key],
-                          label=self._metrics_info[key].name,
-                          lw=1,
-                          color=COLORS[i])
+            fig = plt.figure()
+            fig.canvas.set_window_title(self._plot_title)
+            ax = fig.add_subplot(111)
+            ax.plot(self._stats[YCSBLogParser.TIME], self._stats[key],
+                      label=self._metrics_info[key].name,
+                      lw=1,
+                      color=COLORS[i])
 
-            axarr[i].set_xlabel(self._metrics_info[YCSBLogParser.TIME].name, labelpad=10)
-            axarr[i].set_ylabel(self._metrics_info[key].unit.name, labelpad=10)
-            axarr[i].set_title('', y=1.05)
-            axarr[i].yaxis.set_ticks_position('left')
-            axarr[i].xaxis.set_ticks_position('bottom')
-            axarr[i].legend()
-            axes_by_names[key] = i
+            ax.set_xlabel(self._metrics_info[YCSBLogParser.TIME].name, labelpad=10)
+            ax.set_ylabel(self._metrics_info[key].unit.name, labelpad=10)
+            ax.set_title('', y=1.05)
+            ax.yaxis.set_ticks_position('left')
+            ax.xaxis.set_ticks_position('bottom')
+            ax.legend()
+            fig.savefig(self._metrics_info[key].name + '.svg', format='svg')
+            fig.savefig(self._metrics_info[key].name + '.png', format='png')
+            #axes_by_names[key] = i
 
-        rax = plt.axes([0.01, 0.8, 0.1, 0.1])
-        check_btns = CheckButtons(rax, metric_names, [True] * subplots_count)
-        check_btns.on_clicked(self._get_show_hide_fn(fig, axarr, axes_by_names))
+        #rax = plt.axes([0.01, 0.8, 0.1, 0.1])
+        #check_btns = CheckButtons(rax, metric_names, [True] * subplots_count)
+        #check_btns.on_clicked(self._get_show_hide_fn(fig, axarr, axes_by_names))
 
-        plt.subplots_adjust(left=0.2)
-        plt.show()
+        #plt.subplots_adjust(left=0.2)
+        #plt.show()
 
     def run(self):
         self._do_plot()
 
 
+#class YCSBPlotGUI(QWidget):
+#    def __init__(self, parent=None):
+#        super(YCSBPlotGUI, self).__init__(parent)
+
+
+
 def plot(params):
+    #app = QApplication(sys.argv)
+    #gui = YCSBPlotGUI()
+    #gui.show()
+    #return app.exec_()
+
     ycsb_parser = YCSBLogParser(params.ycsb_log, params.time_step)
     stats  = ycsb_parser.deserialize()
 
@@ -214,28 +198,28 @@ def plot(params):
 
 
 def validate_params(params):
-    errors = []
+    errs = []
 
     if not params.ycsb_log:
-        errors.append('YCSB log file has to be specified')
+        errs.append('YCSB log file has to be specified')
     elif not os.path.isfile(params.ycsb_log):
-        errors.append('Can not read YCSB log file')
+        errs.append('Can not read YCSB log file')
 
-    return errors
+    return errs
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(usage=__doc__)
-    parser.add_argument("--ycsb-log", dest="ycsb_log", type=str, required=True, help="YCSB log file with status outputs")
+    parser.add_argument("--ycsb-log", dest="ycsb_log", type=str, help="YCSB log file with status outputs")
     parser.add_argument("--time-step", dest="time_step", type=int, default=2, help="Time step")
-    args = parser.parse_args()
+    params = parser.parse_args()
 
-    errors = validate_params(args)
+    errors = [] #validate_params(args)
     if len(errors) > 0:
         for err in errors:
             print err
 
         sys.exit(1)
 
-    plot(args)
+    plot(params)
     sys.exit(0)
