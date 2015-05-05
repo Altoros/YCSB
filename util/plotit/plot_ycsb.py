@@ -17,7 +17,7 @@ from multiprocessing import Process
 from matplotlib import pyplot as plt
 
 
-class YCSBLogParser(object):
+class YCSBLogParser:
 
     INSERT = 'INSERT'
     UPDATE = 'UPDATE'
@@ -26,8 +26,7 @@ class YCSBLogParser(object):
     OPERATIONS = 'OPERATIONS'
     TIME = 'TIME'
 
-    def __init__(self, ycsb_log, time_step=1):
-        self._ycsb_log = ycsb_log
+    def __init__(self, time_step=1):
         self._time_step = time_step
 
     @cached_property
@@ -44,10 +43,10 @@ class YCSBLogParser(object):
             YCSBLogParser.TIME: MetricInfo('time', MetricUnit('sec'))
         }
 
-    def _stream_metrics_tokens(self):
+    def _stream_metrics_tokens(self, log_file_name):
         splitter = re.compile('[ =\\[\\]]')
 
-        with open(self._ycsb_log) as f:
+        with open(log_file_name) as f:
             for line in f.readlines():
                 if line.find(' sec: ') == -1:
                     continue
@@ -64,7 +63,7 @@ class YCSBLogParser(object):
             else:
                 i += 1
 
-    def deserialize(self):
+    def deserialize(self, log_file_name):
         stats = {
             YCSBLogParser.THROUGHPUT: [],
             YCSBLogParser.OPERATIONS: [],
@@ -73,7 +72,7 @@ class YCSBLogParser(object):
             YCSBLogParser.READ: []
         }
 
-        for metrics_tokens in self._stream_metrics_tokens():
+        for metrics_tokens in self._stream_metrics_tokens(log_file_name):
             if len(metrics_tokens) <= 6:
                 stats[YCSBLogParser.OPERATIONS].append(0)
                 stats[YCSBLogParser.THROUGHPUT].append(0)
@@ -96,10 +95,11 @@ class YCSBLogParser(object):
 
 class StatisticsPlotter(Process):
 
-    def __init__(self, stats={}, metrics_info={}, plot_title='Any statistics', export_prefix=''):
+    def __init__(self, metrics_set=None, labels=None, metrics_info=None, plot_title='Any statistics', export_prefix=''):
         super(StatisticsPlotter, self).__init__()
 
-        self._stats = stats
+        self._metrics_set = metrics_set
+        self._labels = labels
         self._metrics_info = metrics_info
         self._plot_title = plot_title
         self._export_prefix = export_prefix
@@ -134,39 +134,49 @@ class StatisticsPlotter(Process):
     #     return 3 if total_subplots >= 3 else total_subplots
 
     def _do_plot(self):
-        if YCSBLogParser.TIME not in self._stats:
+        if not self._metrics_set:
             return
 
-        metric_filter = lambda k: k != YCSBLogParser.TIME and len(self._stats[k]) == len(self._stats[YCSBLogParser.TIME])
-        metric_names = filter(metric_filter, self._stats.keys())
-        subplots_count = len(metric_names)
+        #metric_filter = lambda k: k != YCSBLogParser.TIME and len(self._metrics_set[k]) == len(self._metrics_set[YCSBLogParser.TIME])
+        #metric_names = filter(metric_filter, self._metrics_set.keys())
+        #subplots_count = len(metric_names)
 
-        if not subplots_count:
-            return
+        #if not subplots_count:
+        #    return
 
         #fig, axarr = plt.subplots(nrows=self._get_subplots_in_col(subplots_count),
         #                          ncols=self._get_subplots_in_row(subplots_count))
 
-        axes_by_names = {}
+        #axes_by_names = {}
 
-        for i, key in enumerate(metric_names):
+        for metric_name, metric_info in self._metrics_info.items():
+            if metric_name == YCSBLogParser.TIME:
+                continue
+
             fig = plt.figure()
             fig.canvas.set_window_title(self._plot_title)
             ax = fig.add_subplot(111)
-            ax.plot(self._stats[YCSBLogParser.TIME], self._stats[key],
-                      label=self._metrics_info[key].name,
-                      lw=1,
-                      color=COLORS[i])
-
             ax.set_xlabel(self._metrics_info[YCSBLogParser.TIME].full_name, labelpad=5)
-            ax.set_ylabel(self._metrics_info[key].full_name, labelpad=5)
-            ax.set_title('', y=1.05)
+            ax.set_ylabel(metric_info.full_name, labelpad=5)
             ax.yaxis.set_ticks_position('left')
             ax.xaxis.set_ticks_position('bottom')
-            #ax.legend()
-            #fig.savefig(self._export_prefix + self._metrics_info[key].name + '.svg', format='svg')
-            fig.savefig(self._export_prefix + self._metrics_info[key].name + '.png', format='png')
-            #axes_by_names[key] = i
+
+            to_save = False
+            i = 0
+            for metrics in self._metrics_set:
+                if metrics.get(metric_name) and (len(metrics[YCSBLogParser.TIME]) == len(metrics[metric_name])):
+                    ax.plot(metrics[YCSBLogParser.TIME], metrics[metric_name],
+                            label=self._labels[i],
+                            lw=1,
+                            color=COLORS[i])
+                    i += 1
+                    to_save = True
+
+            if to_save:
+                ax.legend()
+                #fig.savefig(self._export_prefix + self._metrics_info[key].name + '.svg', format='svg')
+                fig.savefig(self._export_prefix + metric_name + '.png', format='png')
+                #axes_by_names[key] = i
 
         #rax = plt.axes([0.01, 0.8, 0.1, 0.1])
         #check_btns = CheckButtons(rax, metric_names, [True] * subplots_count)
@@ -191,10 +201,13 @@ def plot(params):
     #gui.show()
     #return app.exec_()
 
-    ycsb_parser = YCSBLogParser(params.ycsb_log, params.time_step)
-    stats  = ycsb_parser.deserialize()
+    ycsb_parser = YCSBLogParser(params.time_step)
 
-    plotter = StatisticsPlotter(stats, ycsb_parser.metrics_info, 'YCSB statistics', params.export_prefix)
+    metrics_set = []
+    for log in params.ycsb_logs:
+        metrics_set.append(ycsb_parser.deserialize(log))
+
+    plotter = StatisticsPlotter(metrics_set, params.plot_labels, ycsb_parser.metrics_info, 'YCSB statistics', params.export_prefix)
     plotter.start()
     plotter.join()
 
@@ -202,17 +215,24 @@ def plot(params):
 def validate_params(params):
     errs = []
 
-    if not params.ycsb_log:
+    if not params.ycsb_logs:
         errs.append('YCSB log file has to be specified')
-    elif not os.path.isfile(params.ycsb_log):
-        errs.append('Can not read YCSB log file')
+        return errs
+
+    for log in params.ycsb_logs:
+        if not os.path.isfile(log):
+            errs.append('Can not read YCSB log file "%s"' % log)
+
+    if len(params.plot_labels) != len(params.ycsb_logs):
+        errs.append('Specify labels for all YCSB log files')
 
     return errs
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(usage=__doc__)
-    parser.add_argument("--ycsb-log", dest="ycsb_log", type=str, help="YCSB log file with status outputs")
+    parser.add_argument("--ycsb-logs", dest="ycsb_logs", nargs='+', type=str, default=[], help="YCSB log files")
+    parser.add_argument("--plot-labels", dest="plot_labels", nargs='+', type=str, default=[], help="Plots lables to display in legend")
     parser.add_argument("--time-step", dest="time_step", type=int, default=2, help="Time step")
     parser.add_argument("--export-prefix", dest="export_prefix", type=str, default='', help="Exported files prefix")
     params = parser.parse_args()
