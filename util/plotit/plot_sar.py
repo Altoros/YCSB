@@ -5,6 +5,8 @@
 import argparse
 import sys
 import subprocess
+import os
+import numpy
 
 from cached_property import cached_property
 
@@ -207,11 +209,12 @@ class DisksSarLogStatistics(SarLogStatistics):
 
 class StatisticsPlotter(Process):
 
-    def __init__(self, statistics=None, plot_title='Any statistics', export_prefix=''):
+    def __init__(self, statistics=None, plot_title='Any statistics', export_prefix='', export_dir='.'):
         super(StatisticsPlotter, self).__init__()
 
         self._statistics = statistics
         self._plot_title = plot_title
+        self._export_dir = export_dir
         self._export_prefix = export_prefix
 
     # def _rearrange_subplots(self, axes):
@@ -248,21 +251,41 @@ class StatisticsPlotter(Process):
         #fig.canvas.set_window_title(self._plot_title)
 
         time = range(len(stats[stats.keys()[0]]))
-        axes_by_names = {}
+        #axes_by_names = {}
+
+        metrics_summary_file_name = os.path.join(self._export_dir,
+                                                 '%s%s_metrics_summary.txt' % (self._export_prefix, self._plot_title))
+        metrics_summary = open(metrics_summary_file_name, 'w')
 
         for i, key in enumerate(stats.keys()):
             fig = plt.figure()
             fig.canvas.set_window_title(self._plot_title)
             ax = fig.add_subplot(111)
+
             ax.plot(time, stats[key], label=metrics_to_plot[key].name, lw=1, color=COLORS[i])
-            ax.set_xlabel('time (sec)')
-            ax.set_ylabel(metrics_to_plot[key].full_name)
+
+            ax.set_xlabel('time (sec)', labelpad=5)
+            ax.set_ylabel(metrics_to_plot[key].full_name, labelpad=5)
+            ax.yaxis.set_ticks_position('left')
+            ax.xaxis.set_ticks_position('bottom')
+            #ax.legend()
+
             #fig.savefig(self._export_prefix + self._plot_title + self._metrics_info[key].name + '.svg', format='svg')
             file_postfix = metrics_to_plot[key].name.replace('/', '_')
-            fig.savefig(self._export_prefix + '[' + self._plot_title + ']_' + file_postfix + '.png', format='png')
-            #ax.legend()
+            dest_file = '%s[%s]_%s.png' % (self._export_prefix, self._plot_title, file_postfix)
+            dest_file_name = os.path.join(self._export_dir, dest_file)
+            fig.savefig(dest_file_name, format='png')
+
+            numpy.set_printoptions(precision=1)
+            metrics_summary.write(file_postfix + os.linesep)
+            metrics_summary.write('max=%.1f%s' % (numpy.amax(stats[key]), os.linesep))
+            metrics_summary.write('5 percentile=%.1f%s' % (numpy.percentile(stats[key], 5), os.linesep))
+            metrics_summary.write('50 percentile=%.1f%s' % (numpy.median(stats[key]), os.linesep))
+            metrics_summary.write('95 percentile=%.1f%s' % (numpy.percentile(stats[key], 95), os.linesep))
+            metrics_summary.write(os.linesep)
             #axes_by_names[key] = i
 
+        metrics_summary.close()
         #rax = plt.axes([0.01, 0.8, 0.1, 0.1])
         #check_btns = CheckButtons(rax, stats.keys(), [True] * subplots_count)
         #check_btns.on_clicked(self._get_show_hide_fn(fig, axarr, axes_by_names))
@@ -275,13 +298,13 @@ class StatisticsPlotter(Process):
 
 
 def plot_cpu_stats(params):
-    proc = StatisticsPlotter(CpuSarLogStatistics(params.sar_log), 'CPU activity (all cores)', params.export_prefix)
+    proc = StatisticsPlotter(CpuSarLogStatistics(params.sar_log), 'CPU activity (all cores)', params.export_prefix, params.export_dir)
     proc.start()
     return [proc]
 
 
 def plot_ram_stats(params):
-    proc = StatisticsPlotter(RamSarLogStatistics(params.sar_log), 'Memory activity', params.export_prefix)
+    proc = StatisticsPlotter(RamSarLogStatistics(params.sar_log), 'Memory activity', params.export_prefix, params.export_dir)
     proc.start()
     return [proc]
 
@@ -289,7 +312,7 @@ def plot_ram_stats(params):
 def plot_network_stats(params):
     procs = []
     for iface in params.iface:
-        proc = StatisticsPlotter(NetworkSarLogStatistics(params.sar_log, iface), 'Network [%s] activity' % iface, params.export_prefix)
+        proc = StatisticsPlotter(NetworkSarLogStatistics(params.sar_log, iface), 'Network [%s] activity' % iface, params.export_prefix, params.export_dir)
         proc.start()
         procs.append(proc)
 
@@ -297,20 +320,20 @@ def plot_network_stats(params):
 
 
 def plot_queue_stats(params):
-    proc = StatisticsPlotter(QueueSarLogStatistics(params.sar_log), 'Queue activity', params.export_prefix)
+    proc = StatisticsPlotter(QueueSarLogStatistics(params.sar_log), 'Queue activity', params.export_prefix, params.export_dir)
     proc.start()
     return [proc]
 
 
 def plot_disks_stats(params):
     if not params.disks:
-        proc = StatisticsPlotter(DisksSarLogStatistics(params.sar_log), 'All disks activity', params.export_prefix)
+        proc = StatisticsPlotter(DisksSarLogStatistics(params.sar_log), 'All disks activity', params.export_prefix, params.export_dir)
         proc.start()
         return [proc]
     else:
         procs = []
         for disk_name in params.disks:
-            proc = StatisticsPlotter(DisksSarLogStatistics(params.sar_log, disk_name), 'Disk [%s] activity' % disk_name, params.export_prefix)
+            proc = StatisticsPlotter(DisksSarLogStatistics(params.sar_log, disk_name), 'Disk [%s] activity' % disk_name, params.export_prefix, params.export_dir)
             proc.start()
             procs.append(proc)
 
@@ -346,6 +369,7 @@ if __name__ == '__main__':
     parser.add_argument('-d', '--disks', nargs='+', metavar='DEV', default=[], help='disks names to plot')
     parser.add_argument('-i', '--iface', nargs='+', metavar='IF', default=[], help='network interfaces to plot. Used with "net" plot')
     parser.add_argument("--export-prefix", dest="export_prefix", type=str, default='', help="Exported files prefix")
+    parser.add_argument("--export-dir", dest="export_dir", type=str, default='.', help="Destination directory for exported files")
 
     return_code = plot_stats(parser.parse_args())
     sys.exit(return_code)
