@@ -277,11 +277,10 @@ class StatisticsPlotter(Process):
             fig.savefig(dest_file_name, format='png')
 
             numpy.set_printoptions(precision=1)
-            metrics_summary.write(file_postfix + os.linesep)
-            metrics_summary.write('max=%.1f%s' % (numpy.amax(stats[key]), os.linesep))
-            metrics_summary.write('5 percentile=%.1f%s' % (numpy.percentile(stats[key], 5), os.linesep))
-            metrics_summary.write('50 percentile=%.1f%s' % (numpy.median(stats[key]), os.linesep))
-            metrics_summary.write('95 percentile=%.1f%s' % (numpy.percentile(stats[key], 95), os.linesep))
+            metrics_summary.write('%s_max=%.1f%s' % (file_postfix, numpy.amax(stats[key]), os.linesep))
+            metrics_summary.write('%s_5_percentile=%.1f%s' % (file_postfix, numpy.percentile(stats[key], 5), os.linesep))
+            metrics_summary.write('%s_50_percentile=%.1f%s' % (file_postfix, numpy.median(stats[key]), os.linesep))
+            metrics_summary.write('%s_95_percentile=%.1f%s' % (file_postfix, numpy.percentile(stats[key], 95), os.linesep))
             metrics_summary.write(os.linesep)
             #axes_by_names[key] = i
 
