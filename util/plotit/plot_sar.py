@@ -253,8 +253,9 @@ class StatisticsPlotter(Process):
         time = range(len(stats[stats.keys()[0]]))
         #axes_by_names = {}
 
-        metrics_summary_file_name = os.path.join(self._export_dir,
-                                                 '%s%s_metrics_summary.txt' % (self._export_prefix, self._plot_title))
+        metrics_summary_file_name = '%smetrics_summary_%s.txt' % (self._export_prefix, self._plot_title)
+        metrics_summary_file_name = metrics_summary_file_name.replace(' ', '_')
+        metrics_summary_file_name = os.path.join(self._export_dir, metrics_summary_file_name)
         metrics_summary = open(metrics_summary_file_name, 'w')
 
         for i, key in enumerate(stats.keys()):
@@ -271,8 +272,9 @@ class StatisticsPlotter(Process):
             #ax.legend()
 
             #fig.savefig(self._export_prefix + self._plot_title + self._metrics_info[key].name + '.svg', format='svg')
-            file_postfix = metrics_to_plot[key].name.replace('/', '_')
-            dest_file = '%s[%s]_%s.png' % (self._export_prefix, self._plot_title, file_postfix)
+            file_postfix = key.replace('/', '_')
+            dest_file = '%splot_%s_%s.png' % (self._export_prefix, self._plot_title, file_postfix)
+            dest_file = dest_file.replace(' ', '_')
             dest_file_name = os.path.join(self._export_dir, dest_file)
             fig.savefig(dest_file_name, format='png')
 
@@ -297,7 +299,7 @@ class StatisticsPlotter(Process):
 
 
 def plot_cpu_stats(params):
-    proc = StatisticsPlotter(CpuSarLogStatistics(params.sar_log), 'CPU activity (all cores)', params.export_prefix, params.export_dir)
+    proc = StatisticsPlotter(CpuSarLogStatistics(params.sar_log), 'CPU activity [all cores]', params.export_prefix, params.export_dir)
     proc.start()
     return [proc]
 

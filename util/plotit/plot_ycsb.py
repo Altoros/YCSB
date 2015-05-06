@@ -35,9 +35,9 @@ class YCSBLogParser:
         str_to_float = lambda v: float(v)
 
         return {
-            YCSBLogParser.INSERT: MetricInfo('insert latensy', us_str_to_ms),
-            YCSBLogParser.UPDATE: MetricInfo('update latensy', us_str_to_ms),
-            YCSBLogParser.READ:   MetricInfo('read latensy', us_str_to_ms),
+            YCSBLogParser.INSERT: MetricInfo('insert latency', us_str_to_ms),
+            YCSBLogParser.UPDATE: MetricInfo('update latency', us_str_to_ms),
+            YCSBLogParser.READ:   MetricInfo('read latency', us_str_to_ms),
             YCSBLogParser.THROUGHPUT: MetricInfo('throughput', MetricUnit('tps', str_to_float)),
             YCSBLogParser.OPERATIONS: MetricInfo('operations', MetricUnit('count', str_to_float)),
             YCSBLogParser.TIME: MetricInfo('time', MetricUnit('sec'))
