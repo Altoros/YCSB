@@ -8,6 +8,7 @@ import argparse
 import os
 import re
 import sys
+import numpy
 
 from cached_property import cached_property
 
@@ -165,15 +166,22 @@ class StatisticsPlotter(Process):
             i = 0
             for metrics in self._metrics_set:
                 if metrics.get(metric_name) and (len(metrics[YCSBLogParser.TIME]) == len(metrics[metric_name])):
+                    marker3 = len(metrics[metric_name])
+                    marker1 = marker3/2
+                    marker2 = marker1 + marker1/2
+                    markers = numpy.array([marker1, marker2, marker3])
+
                     ax.plot(metrics[YCSBLogParser.TIME], metrics[metric_name],
                             label=self._labels[i],
                             lw=1,
+                            #marker=MARKERS[i],
+                            #markevery=markers,
                             color=COLORS[i])
                     i += 1
                     to_save = True
 
             if to_save:
-                ax.legend()
+                ax.legend(numpoints=1)
                 #fig.savefig(self._export_prefix + self._metrics_info[key].name + '.svg', format='svg')
                 fig.savefig(self._export_prefix + metric_name + '.png', format='png')
                 #axes_by_names[key] = i

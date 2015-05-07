@@ -16,6 +16,11 @@ COLORS = ['#008000',  # green
           '#6A5ACD',  # slate blue
           '#000000']  # black
 
+MARKERS = ['s', # square
+           'o', # circle
+           '^', # triangle_up
+           'd'] # diamond
+
 
 class MetricUnit(object):
 
