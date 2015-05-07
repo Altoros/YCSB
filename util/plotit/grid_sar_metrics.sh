@@ -33,6 +33,14 @@ while true; do
             net_metrics_in_set="${2//,/ }"
             shift 2
         ;;
+        -in_dir)
+            input_dir_name="${2}"
+            shift 2
+        ;;
+        -out)
+            output_file_name="${2}"
+            shift 2
+        ;;
         --)
             shift
             break
@@ -44,6 +52,9 @@ while true; do
     esac
 done
 
+cd ${input_dir_name}
+
+echo `pwd`
 echo "Metrics files to be parsed:"
 echo ${sda_metrics_in_set}
 echo ${sdb_metrics_in_set}
@@ -69,26 +80,26 @@ echo "Output lines contains next metrics:
 15 net txkB_s
 "
 
-tmp_out=$(tempfile)
+out=${output_file_name}
 
-grep rd_sec_s ${sda_metrics_in_set} | awk -F '[=]' '{ printf "%s\t", $2; }' >> ${tmp_out} && echo >> ${tmp_out}
-grep wr_sec_s ${sda_metrics_in_set} | awk -F '[=]' '{ printf "%s\t", $2; }' >> ${tmp_out} && echo >> ${tmp_out}
-grep await ${sda_metrics_in_set} | awk -F '[=]' '{ printf "%s\t", $2; }' >> ${tmp_out} && echo >> ${tmp_out}
-grep %util ${sda_metrics_in_set} | awk -F '[=]' '{ printf "%s\t", $2; }' >> ${tmp_out} && echo >> ${tmp_out}
+grep rd_sec_s ${sda_metrics_in_set} | awk -F '[=]' '{ printf "%s\t", $2; }' >> ${out} && echo >> ${out}
+grep wr_sec_s ${sda_metrics_in_set} | awk -F '[=]' '{ printf "%s\t", $2; }' >> ${out} && echo >> ${out}
+grep await ${sda_metrics_in_set} | awk -F '[=]' '{ printf "%s\t", $2; }' >> ${out} && echo >> ${out}
+grep %util ${sda_metrics_in_set} | awk -F '[=]' '{ printf "%s\t", $2; }' >> ${out} && echo >> ${out}
 
-grep rd_sec_s ${sdb_metrics_in_set} | awk -F '[=]' '{ printf "%s\t", $2; }' >> ${tmp_out} && echo >> ${tmp_out}
-grep wr_sec_s ${sdb_metrics_in_set} | awk -F '[=]' '{ printf "%s\t", $2; }' >> ${tmp_out} && echo >> ${tmp_out}
-grep await ${sdb_metrics_in_set} | awk -F '[=]' '{ printf "%s\t", $2; }' >> ${tmp_out} && echo >> ${tmp_out}
-grep %util ${sdb_metrics_in_set} | awk -F '[=]' '{ printf "%s\t", $2; }' >> ${tmp_out} && echo >> ${tmp_out}
+grep rd_sec_s ${sdb_metrics_in_set} | awk -F '[=]' '{ printf "%s\t", $2; }' >> ${out} && echo >> ${out}
+grep wr_sec_s ${sdb_metrics_in_set} | awk -F '[=]' '{ printf "%s\t", $2; }' >> ${out} && echo >> ${out}
+grep await ${sdb_metrics_in_set} | awk -F '[=]' '{ printf "%s\t", $2; }' >> ${out} && echo >> ${out}
+grep %util ${sdb_metrics_in_set} | awk -F '[=]' '{ printf "%s\t", $2; }' >> ${out} && echo >> ${out}
 
-grep kbmemused ${ram_metrics_in_set} | awk -F '[=]' '{ printf "%s\t", $2; }' >> ${tmp_out} && echo >> ${tmp_out}
-grep kbcached ${ram_metrics_in_set} | awk -F '[=]' '{ printf "%s\t", $2; }' >> ${tmp_out} && echo >> ${tmp_out}
-grep kbcommit ${ram_metrics_in_set} | awk -F '[=]' '{ printf "%s\t", $2; }' >> ${tmp_out} && echo >> ${tmp_out}
+grep kbmemused ${ram_metrics_in_set} | awk -F '[=]' '{ printf "%s\t", $2; }' >> ${out} && echo >> ${out}
+grep kbcached ${ram_metrics_in_set} | awk -F '[=]' '{ printf "%s\t", $2; }' >> ${out} && echo >> ${out}
+grep kbcommit ${ram_metrics_in_set} | awk -F '[=]' '{ printf "%s\t", $2; }' >> ${out} && echo >> ${out}
 
-grep %user ${cpu_metrics_in_set} | awk -F '[=]' '{ printf "%s\t", $2; }' >> ${tmp_out} && echo >> ${tmp_out}
-grep %iowait ${cpu_metrics_in_set} | awk -F '[=]' '{ printf "%s\t", $2; }' >> ${tmp_out} && echo >> ${tmp_out}
+grep %user ${cpu_metrics_in_set} | awk -F '[=]' '{ printf "%s\t", $2; }' >> ${out} && echo >> ${out}
+grep %iowait ${cpu_metrics_in_set} | awk -F '[=]' '{ printf "%s\t", $2; }' >> ${out} && echo >> ${out}
 
-grep rxkB_s ${net_metrics_in_set} | awk -F '[=]' '{ printf "%s\t", $2; }' >> ${tmp_out} && echo >> ${tmp_out}
-grep txkB_s ${net_metrics_in_set} | awk -F '[=]' '{ printf "%s\t", $2; }' >> ${tmp_out} && echo >> ${tmp_out}
+grep rxkB_s ${net_metrics_in_set} | awk -F '[=]' '{ printf "%s\t", $2; }' >> ${out} && echo >> ${out}
+grep txkB_s ${net_metrics_in_set} | awk -F '[=]' '{ printf "%s\t", $2; }' >> ${out} && echo >> ${out}
 
-xclip -i ${tmp_out} -selection c
+xclip -i ${out} -selection c

@@ -256,6 +256,10 @@ class StatisticsPlotter(Process):
         metrics_summary_file_name = '%smetrics_summary_%s.txt' % (self._export_prefix, self._plot_title)
         metrics_summary_file_name = metrics_summary_file_name.replace(' ', '_')
         metrics_summary_file_name = os.path.join(self._export_dir, metrics_summary_file_name)
+
+        if not os.path.exists(self._export_dir):
+            os.makedirs(self._export_dir)
+
         metrics_summary = open(metrics_summary_file_name, 'w')
 
         for i, key in enumerate(stats.keys()):
@@ -298,13 +302,13 @@ class StatisticsPlotter(Process):
 
 
 def plot_cpu_stats(params):
-    proc = StatisticsPlotter(CpuSarLogStatistics(params.sar_log), 'CPU activity [all cores]', params.export_prefix, params.export_dir)
+    proc = StatisticsPlotter(CpuSarLogStatistics(params.sar_log), 'CPU [all cores]', params.export_prefix, params.export_dir)
     proc.start()
     return [proc]
 
 
 def plot_ram_stats(params):
-    proc = StatisticsPlotter(RamSarLogStatistics(params.sar_log), 'Memory activity', params.export_prefix, params.export_dir)
+    proc = StatisticsPlotter(RamSarLogStatistics(params.sar_log), 'RAM', params.export_prefix, params.export_dir)
     proc.start()
     return [proc]
 
@@ -312,7 +316,7 @@ def plot_ram_stats(params):
 def plot_network_stats(params):
     procs = []
     for iface in params.iface:
-        proc = StatisticsPlotter(NetworkSarLogStatistics(params.sar_log, iface), 'Network [%s] activity' % iface, params.export_prefix, params.export_dir)
+        proc = StatisticsPlotter(NetworkSarLogStatistics(params.sar_log, iface), 'Network [%s]' % iface, params.export_prefix, params.export_dir)
         proc.start()
         procs.append(proc)
 
@@ -320,20 +324,20 @@ def plot_network_stats(params):
 
 
 def plot_queue_stats(params):
-    proc = StatisticsPlotter(QueueSarLogStatistics(params.sar_log), 'Queue activity', params.export_prefix, params.export_dir)
+    proc = StatisticsPlotter(QueueSarLogStatistics(params.sar_log), 'Queue', params.export_prefix, params.export_dir)
     proc.start()
     return [proc]
 
 
 def plot_disks_stats(params):
     if not params.disks:
-        proc = StatisticsPlotter(DisksSarLogStatistics(params.sar_log), 'All disks activity', params.export_prefix, params.export_dir)
+        proc = StatisticsPlotter(DisksSarLogStatistics(params.sar_log), 'Disks', params.export_prefix, params.export_dir)
         proc.start()
         return [proc]
     else:
         procs = []
         for disk_name in params.disks:
-            proc = StatisticsPlotter(DisksSarLogStatistics(params.sar_log, disk_name), 'Disk [%s] activity' % disk_name, params.export_prefix, params.export_dir)
+            proc = StatisticsPlotter(DisksSarLogStatistics(params.sar_log, disk_name), 'Disk [%s]' % disk_name, params.export_prefix, params.export_dir)
             proc.start()
             procs.append(proc)
 
