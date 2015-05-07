@@ -162,6 +162,10 @@ class StatisticsPlotter(Process):
             ax.yaxis.set_ticks_position('left')
             ax.xaxis.set_ticks_position('bottom')
 
+            metrics_summary_file_name = '%sycsb_metrics_summary_%s.txt' % (self._export_prefix, metric_name)
+            metrics_summary_file_name = metrics_summary_file_name.replace(' ', '_')
+            metrics_summary = open(metrics_summary_file_name, 'w')
+
             to_save = False
             i = 0
             for metrics in self._metrics_set:
@@ -180,12 +184,20 @@ class StatisticsPlotter(Process):
                     i += 1
                     to_save = True
 
+                    metrics_summary.write('%s_max=%.3f%s' % (i, numpy.amax(metrics[metric_name]), os.linesep))
+                    metrics_summary.write('%s_5_percentile=%.3f%s' % (i, numpy.percentile(metrics[metric_name], 5), os.linesep))
+                    metrics_summary.write('%s_50_percentile=%.3f%s' % (i, numpy.median(metrics[metric_name]), os.linesep))
+                    metrics_summary.write('%s_95_percentile=%.3f%s' % (i, numpy.percentile(metrics[metric_name], 95), os.linesep))
+                    metrics_summary.write('%s_99_percentile=%.3f%s' % (i, numpy.percentile(metrics[metric_name], 99), os.linesep))
+                    metrics_summary.write(os.linesep)
+
             if to_save:
                 ax.legend(numpoints=1)
                 #fig.savefig(self._export_prefix + self._metrics_info[key].name + '.svg', format='svg')
                 fig.savefig(self._export_prefix + metric_name + '.png', format='png')
                 #axes_by_names[key] = i
 
+            metrics_summary.close()
         #rax = plt.axes([0.01, 0.8, 0.1, 0.1])
         #check_btns = CheckButtons(rax, metric_names, [True] * subplots_count)
         #check_btns.on_clicked(self._get_show_hide_fn(fig, axarr, axes_by_names))
