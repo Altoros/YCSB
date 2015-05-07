@@ -7,7 +7,7 @@ metrics3_prefix="stats3_metrics_summary_"
 cpu_metrics_postfix="CPU_activity_[all_cores].txt"
 ram_metrics_postfix="Memory_activity.txt"
 sda_metrics_postfix="Disk_[sda]_activity.txt"
-sdb_metrics_postfix="Disk_[sda]_activity.txt"
+sdb_metrics_postfix="Disk_[sdb]_activity.txt"
 net13_metrics_postfix="Network_[eth3]_activity.txt"
 net2_metrics_postfix="Network_[eth5]_activity.txt"
 
