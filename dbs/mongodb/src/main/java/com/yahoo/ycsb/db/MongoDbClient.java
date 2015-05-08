@@ -73,6 +73,8 @@ public class MongoDbClient extends DB {
                     .readPreference(readPreference)
                     .connectionsPerHost(mongoConfig.getThreadCount())
                     .cursorFinalizerEnabled(false);
+                mongoClient = new MongoClient[servers.length];
+                db = new com.mongodb.DB[servers.length];
                 for (int i = 0; i < servers.length; i++) {
                     String url = servers[i];
                     // if mongodb:// prefix is present then this is MongoClientURI format
