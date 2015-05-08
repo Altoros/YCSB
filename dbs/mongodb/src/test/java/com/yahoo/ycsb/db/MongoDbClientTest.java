@@ -1,42 +1,33 @@
 package com.yahoo.ycsb.db;
 
-import com.mongodb.WriteConcern;
+import junit.framework.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Properties;
 
-import static org.junit.Assert.assertEquals;
-
 public class MongoDbClientTest {
-
     private MongoDbClient client;
-    private Properties props;
+    private Properties properties;
 
     @Before
     public void setUp() {
         client = new MongoDbClient();
-        props = new Properties();
-    }
-
-    public void nullifyMongos() {
-        MongoDbClient.mongos = null;
+        properties = new Properties();
     }
 
     @Test
-    public void testInitWriteConcernDefault() throws Exception {
-        nullifyMongos();
+    public void testInitDefaultUrl() throws Exception {
         client.init();
-        assertEquals(WriteConcern.JOURNALED, MongoDbClient.writeConcern);
+        Assert.assertEquals(MongoConfig.DEFAULT_URL, client.mongoConfig.getHosts());
     }
 
     @Test
-    public void testInitWriteConcernNormal() throws Exception {
-        nullifyMongos();
-        props.setProperty("mongodb.writeConcern", "unacknowledged");
-        client.setProperties(props);
+    public void testInitOverrideUrl() throws Exception {
+        String url = "mongodb://1.1.1.1:27017";
+        properties.put(MongoConfig.URL, url);
+        client.setProperties(properties);
         client.init();
-        assertEquals(WriteConcern.UNACKNOWLEDGED, MongoDbClient.writeConcern);
+        Assert.assertEquals(url, client.mongoConfig.getHosts());
     }
-
 }
