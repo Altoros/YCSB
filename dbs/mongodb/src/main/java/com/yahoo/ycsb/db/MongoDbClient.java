@@ -122,7 +122,7 @@ public class MongoDbClient extends DB {
             return OK;
         }
         catch (Exception e) {
-            System.err.println(e.toString());
+            e.printStackTrace();
             return ERROR;
         }
     }
@@ -166,7 +166,7 @@ public class MongoDbClient extends DB {
             }
             return queryResult != null ? OK : ERROR;
         } catch (Exception e) {
-            System.err.println(e.toString());
+            e.printStackTrace();
             return ERROR;
         }
     }
@@ -201,7 +201,7 @@ public class MongoDbClient extends DB {
             WriteResult res = collection.update(q, u, false, false, writeConcern);
             return OK;
         } catch (Exception e) {
-            System.err.println(e.toString());
+            e.printStackTrace();
             return ERROR;
         }
     }
@@ -228,7 +228,7 @@ public class MongoDbClient extends DB {
 
             return OK;
         } catch (Exception e) {
-            System.err.println(e.toString());
+            e.printStackTrace();
             return ERROR;
         }
 
