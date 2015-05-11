@@ -20,6 +20,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * MongoDB client for YCSB framework.
@@ -49,12 +50,15 @@ public class MongoDbClient extends DB {
 
     private static int serverCounter;
 
+    private static AtomicInteger initCount = new AtomicInteger();
+
     /**
      * Initialize any state for this DB.
      * Called once per DB instance; there is one DB instance per client JVM.
      */
     @Override
     public void init() throws DBException {
+        initCount.incrementAndGet();
         synchronized (MongoDbClient.class) {
             if (mongoClient != null) {
                 return;
@@ -62,7 +66,7 @@ public class MongoDbClient extends DB {
             mongoConfig = new MongoConfig(getProperties());
             String urlParam = mongoConfig.getHosts();
 
-            System.setProperty("DEBUG.MONGO", "true");
+            System.setProperty("DEBUG.MONGO", "false");
             System.setProperty("DB.TRACE", "false");
             try {
                 String[] servers = urlParam.split(",");
@@ -96,13 +100,15 @@ public class MongoDbClient extends DB {
 
     @Override
     public void cleanup() throws DBException {
-        for (MongoClient client : mongoClient) {
-            try {
-                client.close();
-            } catch (Exception e) {
-                System.err.println("Error while closing mongo client");
-                e.printStackTrace();
-                return;
+        if (initCount.decrementAndGet() == 0) {
+            for (MongoClient client : mongoClient) {
+                try {
+                    client.close();
+                } catch (Exception e) {
+                    System.err.println("Error while closing mongo client");
+                    e.printStackTrace();
+                    return;
+                }
             }
         }
     }
