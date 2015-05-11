@@ -11,7 +11,7 @@ storage:
   wiredTiger:
     engineConfig:
       cacheSizeGB: 24
-    journalCompressor: zlib
+      journalCompressor: zlib
     collectionConfig:
       blockCompressor: zlib
     indexConfig:
