@@ -729,7 +729,7 @@ public class Client {
         int warmupopcount = Integer.parseInt(props.getProperty(WARMUP_OPERATION_COUNT_PROPERTY, "0"));
         int warmupexectime = Integer.parseInt(props.getProperty(WARMUP_EXECUTION_TIME, "0"));
 
-        if (dotransactions) {
+        if (dotransactions && (warmupopcount > 0 || warmupexectime > 0)) {
             Vector<Thread> warmupThreads = new Vector<Thread>();
             for (int threadid = 0; threadid < threadcount; threadid++) {
                 DB db = null;
