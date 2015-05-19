@@ -15,7 +15,6 @@ CREATE TABLE ks_95_5.test_table (
 );
 
 ALTER KEYSPACE system_traces WITH DURABLE_WRITES = false;
-ALTER KEYSPACE ks_95_5 WITH DURABLE_WRITES = false;
 
 ALTER TABLE ks_95_5.test_table WITH compaction = {'class':'LeveledCompactionStrategy'};
 ALTER TABLE ks_95_5.test_table WITH caching = '{"keys":"ALL", "rows_per_partition":"ALL"}';
@@ -33,7 +32,6 @@ CREATE TABLE ks_95_5.test_table (
      field0 blob
 );
 
-ALTER KEYSPACE ks_95_5 WITH DURABLE_WRITES = false;
 ALTER KEYSPACE system_traces WITH DURABLE_WRITES = false;
 
 ALTER TABLE ks_95_5.test_table WITH compaction = {'class':'LeveledCompactionStrategy'};

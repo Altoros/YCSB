@@ -260,13 +260,13 @@ def cassandra_copy_logs(config_path=BENCHMARK_CONF_PATH, workload_name=None, key
 @roles('servers')
 def _do_cassandra_set_cache():
     conf = '/etc/cassandra/cassandra.yaml'
-    #sudo('sed -i "s|commitlog_sync: batch # changed|commitlog_sync: batch # changed|g" %s' % conf)
-    #sudo('sed -i "s|commitlog_sync_batch_window_in_ms: 1 # changed|commitlog_sync_batch_window_in_ms: 1 # changed|g" %s' % conf)
-    #sudo('sed -i "s|commitlog_sync: periodic # changed|#commitlog_sync: periodic # changed|g" %s' % conf)
-    #sudo('sed -i "s|commitlog_sync_period_in_ms: 5000 # changed|#commitlog_sync_period_in_ms: 5000 # changed|g" %s' % conf)
-    sudo('sed -i "s|trickle_fsync: true # changed|trickle_fsync: false|g" %s' % conf)
+    #sudo('sed -i "s|commitlog_sync: batch # changed|#commitlog_sync: batch # changed|g" %s' % conf)
+    #sudo('sed -i "s|commitlog_sync_batch_window_in_ms: 1 # changed|#commitlog_sync_batch_window_in_ms: 1 # changed|g" %s' % conf)
+    #sudo('sed -i "s|#commitlog_sync: periodic # changed|commitlog_sync: periodic # changed|g" %s' % conf)
+    #sudo('sed -i "s|#commitlog_sync_period_in_ms: 5000 # changed|commitlog_sync_period_in_ms: 5000 # changed|g" %s' % conf)
+    #sudo('sed -i "s|trickle_fsync: false # changed|trickle_fsync: true # changed|g" %s' % conf)
 
-    #run('nodetool setcachecapacity -- 128 512 50')
+    run('nodetool setcachecapacity -- 128 512 50')
 
 
 @task
