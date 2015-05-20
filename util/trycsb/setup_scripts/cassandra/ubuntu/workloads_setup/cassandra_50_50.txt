@@ -1,5 +1,5 @@
-CREATE KEYSPACE ks_50_50 WITH REPLICATION = {'class' : 'SimpleStrategy', 'replication_factor': 2 };
-CREATE TABLE ks_50_50.test_table (
+CREATE KEYSPACE ks_tiny_50_50 WITH REPLICATION = {'class' : 'SimpleStrategy', 'replication_factor': 2 };
+CREATE TABLE ks_tiny_50_50.test_table (
    y_id varchar primary key,
    field0 blob,
    field1 blob,
@@ -14,8 +14,8 @@ CREATE TABLE ks_50_50.test_table (
 );
 
 ALTER KEYSPACE system_traces WITH DURABLE_WRITES = false;
-ALTER TABLE ks_50_50.test_table WITH compaction = {'class':'LeveledCompactionStrategy'};
-ALTER TABLE ks_50_50.test_table WITH caching = '{"keys":"ALL", "rows_per_partition":"ALL"}';
+ALTER TABLE ks_tiny_50_50.test_table WITH compaction = {'class':'LeveledCompactionStrategy'};
+ALTER TABLE ks_tiny_50_50.test_table WITH caching = '{"keys":"ALL", "rows_per_partition":"ALL"}';
 SELECT * FROM system.schema_keyspaces;
 
 ===
