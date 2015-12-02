@@ -17,38 +17,29 @@ Cassandra requires a configuration change in conf/cassandra.yaml.  Uncomment the
 
 Links
 -----
-http://wiki.github.com/jbellis/YCSB/  
 http://research.yahoo.com/Web_Information_Management/YCSB/  
 ycsb-users@yahoogroups.com  
 
 Getting Started
 ---------------
 
-1. Download the latest release of YCSB:
+###Download the latest project version:
 
-    ```sh
-    wget https://github.com/downloads/jbellis/YCSB/ycsb-0.1.4.tar.gz
-    tar xfvz ycsb-0.1.4
-    cd ycsb-0.1.4
-    ```
-    
-2. Set up a database to benchmark. There is a README file under each binding 
-   directory.
+    git clone https://github.com/Altoros/YCSB
 
-3. Run YCSB command. 
-    
-    ```sh
-    bin/ycsb load basic -P workloads/workloada
-    bin/ycsb run basic -P workloads/workloada
-    ```
+###Create an executable YCSB runner using Maven:
 
-  Running the `ycsb` command without any argument will print the usage. 
-   
-  See https://github.com/brianfrankcooper/YCSB/wiki/Running-a-Workload
-  for a detailed documentation on how to run a workload.
+    mvn package -P db_profile_id
 
-  See https://github.com/brianfrankcooper/YCSB/wiki/Core-Properties for 
+  where `db_profile_id` is the id of database profile, specified in `pom.xml` of certain database at `/dbs` directory.
+  For example:
+
+    mvn package -P cassandra-exec
+
+###Run YCSB command.
+
+  How to configure environment and cluster please see [here](./util/trycsb/README.md)
+
+  See https://github.com/brianfrankcooper/YCSB/wiki/Core-Properties for
   the list of available workload properties.
 
-  Alternatively, see fabric/README for Thumbtack's work on parallelizing
-  YCSB clients using Fabric.

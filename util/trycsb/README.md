@@ -5,7 +5,9 @@
     pip2 install fabric  
     pip2 install pyyaml  
       
-Or use virtualenv. 
+Or use virtualenv.
+
+Note that fabric scripts may not work on [Windows](https://github.com/fabric/fabric/issues/489)
 
 #Remote dependencies
     Ubuntu
@@ -18,17 +20,9 @@ So first you need to configure it.
 
 #Create executable YCSB runner
 
-To make executable YCSB file with all necessary dependencies, run:
+How to make executable YCSB file with all necessary dependencies, please see in [readme](./../../README.md) under the root.
 
-    mvn package -P db_profile_id
-
-where `db_profile_id` is the id of database profile, specified in `pom.xml` of certain database at `/dbs` directory.
-
-For example:
-
-    mvn package -P cassandra-exec
-
-Don't forget to copy the result jar from `/dbs/$database/target` drectory to `/util/trycsb` directory and
+Don't forget to copy the result jar from `/dbs/$database/target` directory to `/util/trycsb` directory and
 to specify the correct name of jar file in `uploads:` section in `benchmark_conf.yaml` file.
 For example: `uploads: [cassandra-ycsb-exec.jar]`
 
@@ -41,6 +35,11 @@ To deploy YCSB client on server, run:
 #Environment setup
 
 There are setup scripts under `setup_scripts/environment` directory for environment configuration (CentOS or Ubuntu).
+
+To setup environment please issue the following commands:
+
+    fab setup_env:env_type=client
+    fab setup_env:env_type=server
 
 #Cluster setup
 
@@ -76,6 +75,11 @@ To prepare your MongoDB cluster you need:
     run fab setup_env:env_type=client
 
 #Cassandra
+
+To configure Cassandra cluster you need:
+
+    set DSC_VERSION and CASSANDRA_VERSION variables in setup_cassandra.sh
+    configure cluster parameters in bin/cluster_setup.sh
 
 #Couchbase
 
