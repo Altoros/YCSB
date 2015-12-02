@@ -22,17 +22,28 @@ CASSANDRA_CONF=${CASSANDRA_CONF_DIR}/cassandra.yaml
 CASSANDRA_ENV_CONF=${CASSANDRA_CONF_DIR}/cassandra-env.sh
 CASSANDRA_DATA_DIR=/var/cassandra-data
 CASSANDRA_COMMITLOG_DIR=/disk1/cassandra-commitlog
-SEEDS="50.23.195.162"
+
+SEEDS="192.168.2.48,192.168.2.50,192.168.2.52"
+seedsArr=(${SEEDS//,/ })
+seedsArrLen=${#seedsArr[@]}
+
+all_token_range=$(echo '2^64' | bc)
+start_token_range=$(echo '-2^63' | bc)
+token_step=$(bc <<< "$all_token_range/$seedsArrLen")
 
 declare -A PUBLIC_TO_LOCAL_ADDRESSES
-PUBLIC_TO_LOCAL_ADDRESSES['192.155.206.162']="192.155.206.162"
-PUBLIC_TO_LOCAL_ADDRESSES['192.155.206.163']="192.155.206.163"
-PUBLIC_TO_LOCAL_ADDRESSES['50.23.195.162']="50.23.195.162"
+for i in "${!seedsArr[@]}"
+do
+    seed=${seedsArr[i]}
+    PUBLIC_TO_LOCAL_ADDRESSES[$seed]=$seed
+done
 
 declare -A PUBLIC_ADDRESS_TO_TOKEN
-PUBLIC_ADDRESS_TO_TOKEN['192.155.206.162']="-9223372036854775808"
-PUBLIC_ADDRESS_TO_TOKEN['192.155.206.163']="-3074457345618258603"
-PUBLIC_ADDRESS_TO_TOKEN['50.23.195.162']="3074457345618258602"
+for i in "${!seedsArr[@]}"
+do
+    seed=${seedsArr[i]}
+    PUBLIC_ADDRESS_TO_TOKEN[$seed]=$(bc <<< $start_token_range+$token_step*$i)
+done
 
 
 rm -fr /var/log/cassandra/*
@@ -111,8 +122,8 @@ echo -e '# OptionPlaceholder b1' >> ${CASSANDRA_ENV_CONF}
 sed -i "s|JVM_OPTS=\"\$JVM_OPTS -ea\"|JVM_OPTS=\"\$JVM_OPTS -da\" ${CHANGE_MARK}|g" ${CASSANDRA_ENV_CONF}
 
 # https://issues.apache.org/jira/browse/CASSANDRA-8150
-sed -i "s|#MAX_HEAP_SIZE=\"4G\"|MAX_HEAP_SIZE=\"45G\" ${CHANGE_MARK}|g" ${CASSANDRA_ENV_CONF}
-sed -i "s|#HEAP_NEWSIZE=\"800M\"|HEAP_NEWSIZE=\"40G\" ${CHANGE_MARK}|g" ${CASSANDRA_ENV_CONF}
+#sed -i "s|#MAX_HEAP_SIZE=\"4G\"|MAX_HEAP_SIZE=\"45G\" ${CHANGE_MARK}|g" ${CASSANDRA_ENV_CONF}
+#sed -i "s|#HEAP_NEWSIZE=\"800M\"|HEAP_NEWSIZE=\"40G\" ${CHANGE_MARK}|g" ${CASSANDRA_ENV_CONF}
 
 sed -i "s|JVM_OPTS=\"\$JVM_OPTS -XX:MaxTenuringThreshold=1\"|JVM_OPTS=\"\$JVM_OPTS -XX:MaxTenuringThreshold=8\"|g" ${CASSANDRA_ENV_CONF}
 

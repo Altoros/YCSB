@@ -4,7 +4,9 @@ script_name=`basename $0`
 CASSANDRA_CONF_DIR=/etc/cassandra
 CASSANDRA_CONF_BACKUP_DIR=${CASSANDRA_CONF_DIR}/original_bak
 
-is_intalled_cassandra=$(dpkg-query -W -f='${Status}' dsc21 2>/dev/null | grep -c "ok installed")
+DSC_VERSION=$1
+
+is_intalled_cassandra=$(dpkg-query -W -f='${Status}' dsc$DSC_VERSION 2>/dev/null | grep -c "ok installed")
 
 if [ ${is_intalled_cassandra} -eq 1 ];
 then
@@ -17,7 +19,7 @@ echo "deb http://debian.datastax.com/community stable main" | sudo tee -a /etc/a
 curl -L http://debian.datastax.com/debian/repo_key | sudo apt-key add -
 
 apt-get update
-apt-get install -y --force-yes dsc21
+apt-get install -y --force-yes dsc$DSC_VERSION cassandra=$2
 #apt-get install -y --force-yes opscenter
 #apt-get install -y --force-yes datastax-agent
 

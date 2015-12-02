@@ -5,6 +5,9 @@ if [ -z "$1" ]; then
     exit 1
 fi
 
-bash bin/uninstall_dse.sh
-bash bin/install_dse.sh
-bash bin/cluster_config.sh $1
+DSC_VERSION=22
+CASSANDRA_VERSION=2.2.3
+
+bash bin/uninstall_dse.sh $DSC_VERSION
+bash bin/install_dse.sh $DSC_VERSION $CASSANDRA_VERSION
+bash bin/cluster_config.sh $1 
