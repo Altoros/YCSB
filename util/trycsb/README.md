@@ -79,7 +79,11 @@ To prepare your MongoDB cluster you need:
 To configure Cassandra cluster you need:
 
     set DSC_VERSION and CASSANDRA_VERSION variables in setup_cassandra.sh
-    configure cluster parameters in bin/cluster_setup.sh
+    configure all needed parameters in bin/cluster_setup.sh
+
+Known issues: <br/>
+[could not access pidfile for Cassandra](https://issues.apache.org/jira/browse/CASSANDRA-9822) (and possible [solution](https://github.com/locp/cassandra/issues/63#issuecomment-125328745))
+
 
 #Couchbase
 

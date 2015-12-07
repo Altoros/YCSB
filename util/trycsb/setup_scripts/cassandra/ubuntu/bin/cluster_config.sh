@@ -22,6 +22,7 @@ CASSANDRA_CONF=${CASSANDRA_CONF_DIR}/cassandra.yaml
 CASSANDRA_ENV_CONF=${CASSANDRA_CONF_DIR}/cassandra-env.sh
 CASSANDRA_DATA_DIR=/var/cassandra-data
 CASSANDRA_COMMITLOG_DIR=/disk1/cassandra-commitlog
+#!/bin/bash
 
 SEEDS="192.168.2.48,192.168.2.50,192.168.2.52"
 seedsArr=(${SEEDS//,/ })
@@ -122,8 +123,8 @@ echo -e '# OptionPlaceholder b1' >> ${CASSANDRA_ENV_CONF}
 sed -i "s|JVM_OPTS=\"\$JVM_OPTS -ea\"|JVM_OPTS=\"\$JVM_OPTS -da\" ${CHANGE_MARK}|g" ${CASSANDRA_ENV_CONF}
 
 # https://issues.apache.org/jira/browse/CASSANDRA-8150
-#sed -i "s|#MAX_HEAP_SIZE=\"4G\"|MAX_HEAP_SIZE=\"45G\" ${CHANGE_MARK}|g" ${CASSANDRA_ENV_CONF}
-#sed -i "s|#HEAP_NEWSIZE=\"800M\"|HEAP_NEWSIZE=\"40G\" ${CHANGE_MARK}|g" ${CASSANDRA_ENV_CONF}
+sed -i "s|#MAX_HEAP_SIZE=\"4G\"|MAX_HEAP_SIZE=\"45G\" ${CHANGE_MARK}|g" ${CASSANDRA_ENV_CONF}
+sed -i "s|#HEAP_NEWSIZE=\"800M\"|HEAP_NEWSIZE=\"40G\" ${CHANGE_MARK}|g" ${CASSANDRA_ENV_CONF}
 
 sed -i "s|JVM_OPTS=\"\$JVM_OPTS -XX:MaxTenuringThreshold=1\"|JVM_OPTS=\"\$JVM_OPTS -XX:MaxTenuringThreshold=8\"|g" ${CASSANDRA_ENV_CONF}
 
@@ -140,3 +141,11 @@ sed -i "s|# OptionPlaceholder a7|JVM_OPTS=\"\$JVM_OPTS -XX:+BindGCTaskThreadsToC
 sed -i "s|# OptionPlaceholder a8|JVM_OPTS=\"\$JVM_OPTS -XX:ParGCCardsPerStrideChunk=32768\"|g" ${CASSANDRA_ENV_CONF}
 sed -i "s|# OptionPlaceholder a9|JVM_OPTS=\"\$JVM_OPTS -XX:MaxGCPauseMillis=20\"|g" ${CASSANDRA_ENV_CONF}
 sed -i "s|# OptionPlaceholder b1|JVM_OPTS=\"\$JVM_OPTS -XX:+CMSConcurrentMTEnabled\"|g" ${CASSANDRA_ENV_CONF}
+
+#https://issues.apache.org/jira/browse/CASSANDRA-9822
+sed -i "s|CMD_PATT=\"cassandra.+CassandraDaemon\"|CMD_PATT=\"cassandra\" ${CHANGE_MARK}|g" /etc/init.d/cassandra
+
+
+sleep 30
+echo "$script_name: Start cassandra"
+service cassandra start
