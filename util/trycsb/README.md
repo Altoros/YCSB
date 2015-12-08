@@ -144,3 +144,5 @@ Use `plot_sar.py` from `/util/plotit` directory. Run:
     python plot_sar.py --sar_log filename
 
 where `filename` is the name of binary log file.
+
+Please ensure that you have installed `sysstat` (apt-get install sysstat)
